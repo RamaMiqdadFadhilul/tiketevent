@@ -7,9 +7,9 @@ class DBconnection
     public function __construct()
     {
         $this->connection = new PDO(
-            "pgsql:host=localhost;port=5432;dbname=dbticketevent",
+            "pgsql:host=localhost;port=5432;dbname=cobacoba",
             "postgres",
-            "postgres123"
+            "rmfu2910"
         );
 
         $this->connection->setAttribute(
@@ -24,7 +24,6 @@ class DBconnection
     ): Respon {
         try {
             $statement = $this->connection->prepare($query);
-
             $statement->execute($params);
 
             $data = $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -36,7 +35,6 @@ class DBconnection
             );
 
         } catch (PDOException $e) {
-
             return new Respon(
                 false,
                 $e->getMessage()
