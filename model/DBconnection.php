@@ -7,9 +7,9 @@ class DBconnection
     public function __construct()
     {
         $this->connection = new PDO(
-            "pgsql:host=localhost;port=5432;dbname=namadb",
+            "pgsql:host=localhost;port=5432;dbname=dbticketevent",
             "postgres",
-            "pwdb"
+            "postgres123"
         );
 
         $this->connection->setAttribute(
