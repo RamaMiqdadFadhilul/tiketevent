@@ -4,9 +4,20 @@ require_once "../bootstrap.php";
 
 $db = new DBconnection();
 
-$ticketModel = new Ticket($db);
+$eventModel = new Event($db);
 
-$tickets = $ticketModel->find_all();
+// Ambil event yang sedang berlangsung
+$result = $db->send_query(
+    "SELECT *
+     FROM events
+     WHERE status = :status
+     ORDER BY event_date, event_time",
+    [
+        'status' => 'ongoing'
+    ]
+);
+
+$events = $result->data;
 
 ?>
 
@@ -14,189 +25,218 @@ $tickets = $ticketModel->find_all();
 <html lang="id">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Event Ticketing System</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: 40px auto;
-        }
+    <!-- Bootstrap -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
 
-        .ticket {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        input,
-        select,
-        button {
-            padding: 8px;
-            margin-top: 5px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        button {
-            cursor: pointer;
-        }
-    </style>
 </head>
 
-<body>
 
-    <h1>Event Ticketing System</h1>
-
-    <h2>Daftar Tiket</h2>
-
-    <?php foreach ($tickets as $ticket): ?>
-
-        <div class="ticket">
-
-            <h3>
-                <?= htmlspecialchars($ticket['name']) ?>
-            </h3>
-
-            <p>
-                Harga:
-                Rp<?= number_format($ticket['price'], 0, ',', '.') ?>
-            </p>
-
-            <p>
-                Stok:
-                <?= $ticket['stock'] ?>
-            </p>
-
-        </div>
-
-    <?php endforeach; ?>
+<body class="bg-light">
 
 
-    <h2>Pesan Tiket</h2>
+<!-- Navbar -->
 
-    <form action="../order.php" method="POST">
+<nav class="navbar navbar-dark bg-primary">
 
-        <div class="form-group">
+    <div class="container">
 
-            <label for="customer_name">
-                Nama
-            </label>
+        <a
+            class="navbar-brand fw-bold"
+            href="index.php"
+        >
+            Event Ticketing System
+        </a>
 
-            <br>
+    </div>
 
-            <input
-                type="text"
-                id="customer_name"
-                name="customer_name"
-                required
-            >
-
-        </div>
+</nav>
 
 
-        <div class="form-group">
+<!-- Content -->
 
-            <label for="customer_email">
-                Email
-            </label>
+<div class="container py-5">
 
-            <br>
+    <div class="text-center mb-5">
 
-            <input
-                type="email"
-                id="customer_email"
-                name="customer_email"
-                required
-            >
+        <h1 class="fw-bold">
+            Event Sedang Berlangsung
+        </h1>
+
+        <p class="text-muted">
+            Temukan event dan pesan tiket favoritmu.
+        </p>
+
+    </div>
+
+
+    <?php if (empty($events)): ?>
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center py-5">
+
+                <h5 class="text-muted">
+                    Belum ada event yang sedang berlangsung.
+                </h5>
+
+            </div>
 
         </div>
 
+    <?php else: ?>
 
-        <div class="form-group">
+        <div class="row g-4">
 
-            <label for="customer_phone">
-                Nomor HP
-            </label>
+            <?php foreach ($events as $event): ?>
 
-            <br>
+                <div class="col-md-6 col-lg-4">
 
-            <input
-                type="text"
-                id="customer_phone"
-                name="customer_phone"
-                required
-            >
+                    <div class="card h-100 shadow-sm">
+
+                        <!-- Event Image -->
+
+                        <?php if (!empty($event['image'])): ?>
+
+                            <img
+                                src="<?= htmlspecialchars($event['image']) ?>"
+                                class="card-img-top"
+                                alt="<?= htmlspecialchars($event['name']) ?>"
+                                style="height: 200px; object-fit: cover;"
+                            >
+
+                        <?php else: ?>
+
+                            <div
+                                class="bg-secondary text-white d-flex align-items-center justify-content-center"
+                                style="height: 200px;"
+                            >
+                                <span>
+                                    Tidak ada gambar
+                                </span>
+                            </div>
+
+                        <?php endif; ?>
+
+
+                        <div class="card-body">
+
+                            <span class="badge bg-success mb-2">
+                                Sedang Berlangsung
+                            </span>
+
+
+                            <h5 class="card-title fw-bold">
+
+                                <?= htmlspecialchars(
+                                    $event['name']
+                                ) ?>
+
+                            </h5>
+
+
+                            <p class="card-text text-muted">
+
+                                <?= htmlspecialchars(
+                                    $event['description']
+                                    ?? 'Tidak ada deskripsi.'
+                                ) ?>
+
+                            </p>
+
+
+                            <div class="mb-2">
+
+                                <small class="text-muted">
+
+                                    📅
+
+                                    <?= date(
+                                        'd F Y',
+                                        strtotime(
+                                            $event['event_date']
+                                        )
+                                    ) ?>
+
+                                </small>
+
+                            </div>
+
+
+                            <div class="mb-3">
+
+                                <small class="text-muted">
+
+                                    🕐
+
+                                    <?= date(
+                                        'H:i',
+                                        strtotime(
+                                            $event['event_time']
+                                        )
+                                    ) ?>
+
+                                    WIB
+
+                                </small>
+
+                            </div>
+
+
+                            <div class="mb-3">
+
+                                <small class="text-muted">
+
+                                    📍
+
+                                    <?= htmlspecialchars(
+                                        $event['location']
+                                    ) ?>
+
+                                </small>
+
+                            </div>
+
+
+                            <a
+                                href="event_detail.php?id=<?= $event['id'] ?>"
+                                class="btn btn-primary w-100"
+                            >
+                                Lihat Event
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            <?php endforeach; ?>
 
         </div>
 
+    <?php endif; ?>
 
-        <div class="form-group">
-
-            <label for="ticket_id">
-                Pilih Tiket
-            </label>
-
-            <br>
-
-            <select
-                id="ticket_id"
-                name="ticket_id"
-                required
-            >
-
-                <option value="">
-                    -- Pilih Tiket --
-                </option>
-
-                <?php foreach ($tickets as $ticket): ?>
-
-                    <option
-                        value="<?= $ticket['id'] ?>"
-                    >
-                        <?= htmlspecialchars($ticket['name']) ?>
-                        -
-                        Rp<?= number_format($ticket['price'], 0, ',', '.') ?>
-                    </option>
-
-                <?php endforeach; ?>
-
-            </select>
-
-        </div>
+</div>
 
 
-        <div class="form-group">
+<!-- Bootstrap JS -->
 
-            <label for="quantity">
-                Jumlah Tiket
-            </label>
-
-            <br>
-
-            <input
-                type="number"
-                id="quantity"
-                name="quantity"
-                min="1"
-                value="1"
-                required
-            >
-
-        </div>
-
-
-        <button type="submit">
-            Pesan Tiket
-        </button>
-
-    </form>
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+></script>
 
 </body>
 
