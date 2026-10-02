@@ -29,7 +29,7 @@ $tickets = $ticketModel->find_all();
         .ticket {
             border: 1px solid #ddd;
             border-radius: 10px;
-            padding: 20px;
+            padding: 15px;
             margin-bottom: 20px;
         }
 
