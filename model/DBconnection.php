@@ -1,8 +1,10 @@
 <?php
 
+require_once __DIR__ . '/Respon.php';
+
 class DBconnection
 {
-    private PDO $connection;
+    private ?PDO $db = null;
 
     public function __construct()
     {
@@ -18,29 +20,28 @@ class DBconnection
         );
     }
 
-    public function send_query(
-        string $query,
-        array $params = []
-    ): Respon {
+    public function send_query(string $sql, array $params = []): Respon
+    {
         try {
-            $statement = $this->connection->prepare($query);
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
 
-            $statement->execute($params);
+            // Jika query adalah SELECT atau mengembalikan data
+            if (stripos(trim($sql), 'SELECT') === 0 || stripos(trim($sql), 'RETURNING') !== false) {
+                $data = $stmt->fetchAll();
+                return new Respon(true, 'Query berhasil', $data);
+            }
 
-            $data = $statement->fetchAll(PDO::FETCH_ASSOC);
-
-            return new Respon(
-                true,
-                'Query berhasil',
-                $data
-            );
+            // Jika query adalah INSERT, UPDATE, DELETE
+            return new Respon(true, 'Query berhasil', []);
 
         } catch (PDOException $e) {
-
-            return new Respon(
-                false,
-                $e->getMessage()
-            );
+            return new Respon(false, 'Database menolak: ' . $e->getMessage(), []);
         }
+    }
+
+    public function getConnection(): ?PDO
+    {
+        return $this->db;
     }
 }
