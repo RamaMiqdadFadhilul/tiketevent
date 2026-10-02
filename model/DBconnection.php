@@ -8,33 +8,16 @@ class DBconnection
 
     public function __construct()
     {
-        $host = "localhost";
-        $port = "5432";
-        $user = "postgres";
-        $pass = "NoLimitersGuys";
+        $this->connection = new PDO(
+            "pgsql:host=localhost;port=5433;dbname=dbticketevent",
+            "postgres",
+            "Velisa_272017"
+        );
 
-        // Daftar kemungkinan nama database (lowercase vs format asli)
-        $dbCandidates = ["dbtiketevent", "DBtiketevent"];
-        $lastException = null;
-
-        foreach ($dbCandidates as $dbname) {
-            try {
-                $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
-                $this->db = new PDO($dsn, $user, $pass, [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-                ]);
-                // Kalau berhasil konek, langsung hentikan loop
-                break;
-            } catch (PDOException $e) {
-                $lastException = $e;
-            }
-        }
-
-        // Kalau kedua nama dicoba tetap gagal konek
-        if ($this->db === null) {
-            throw new Exception("Gagal terhubung ke PostgreSQL: " . ($lastException ? $lastException->getMessage() : "Unknown error"));
-        }
+        $this->connection->setAttribute(
+            PDO::ATTR_ERRMODE,
+            PDO::ERRMODE_EXCEPTION
+        );
     }
 
     public function send_query(string $sql, array $params = []): Respon
