@@ -17,6 +17,12 @@ if ($data === null) {
 }
 
 
+// Ambil semua category
+$categories = $db->send_query(
+    "SELECT * FROM categories ORDER BY name"
+)->data;
+
+
 // Kalau tombol Update ditekan
 if (isset($_POST['update'])) {
 
@@ -40,153 +46,297 @@ if (isset($_POST['update'])) {
 
     } else {
 
-        echo "Gagal mengubah event: ";
-        echo $respon->message;
+        $error = $respon->message;
     }
 }
 
+
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
 ?>
 
-<!DOCTYPE html>
-<html>
+<main class="app-main">
 
-<head>
-    <title>Edit Event</title>
-</head>
+    <!-- Header -->
+    <div class="app-content-header">
+        <div class="container-fluid">
 
-<body>
+            <h3 class="mb-0">Edit Event</h3>
 
-<h1>Edit Event</h1>
-
-<form method="POST">
-
-    <label>Category ID</label>
-    <br>
-
-    <input
-        type="number"
-        name="category_id"
-        value="<?= $data['category_id']; ?>"
-        required
-    >
-
-    <br><br>
+        </div>
+    </div>
 
 
-    <label>Nama Event</label>
-    <br>
+    <!-- Content -->
+    <div class="app-content">
+        <div class="container-fluid">
 
-    <input
-        type="text"
-        name="name"
-        value="<?= htmlspecialchars($data['name']); ?>"
-        required
-    >
+            <div class="card">
 
-    <br><br>
+                <div class="card-header">
+                    <h3 class="card-title">Form Edit Event</h3>
+                </div>
 
+                <div class="card-body">
 
-    <label>Deskripsi</label>
-    <br>
+                    <?php if (isset($error)): ?>
 
-    <textarea name="description"><?= htmlspecialchars($data['description'] ?? ''); ?></textarea>
+                        <div class="alert alert-danger">
+                            <?= htmlspecialchars($error) ?>
+                        </div>
 
-    <br><br>
-
-
-    <label>Lokasi</label>
-    <br>
-
-    <input
-        type="text"
-        name="location"
-        value="<?= htmlspecialchars($data['location']); ?>"
-        required
-    >
-
-    <br><br>
+                    <?php endif; ?>
 
 
-    <label>Tanggal Event</label>
-    <br>
+                    <form method="POST">
 
-    <input
-        type="date"
-        name="event_date"
-        value="<?= $data['event_date']; ?>"
-        required
-    >
+                        <!-- Category -->
+                        <div class="mb-3">
 
-    <br><br>
+                            <label
+                                for="category_id"
+                                class="form-label"
+                            >
+                                Kategori
+                            </label>
 
+                            <select
+                                name="category_id"
+                                id="category_id"
+                                class="form-select"
+                                required
+                            >
 
-    <label>Waktu Event</label>
-    <br>
+                                <option value="">
+                                    -- Pilih Kategori --
+                                </option>
 
-    <input
-        type="time"
-        name="event_time"
-        value="<?= $data['event_time']; ?>"
-        required
-    >
+                                <?php foreach ($categories as $category): ?>
 
-    <br><br>
+                                    <option
+                                        value="<?= $category['id'] ?>"
+                                        <?= $data['category_id'] == $category['id'] ? 'selected' : '' ?>
+                                    >
+                                        <?= htmlspecialchars($category['name']) ?>
+                                    </option>
 
+                                <?php endforeach; ?>
 
-    <label>Image</label>
-    <br>
+                            </select>
 
-    <input
-        type="text"
-        name="image"
-        value="<?= htmlspecialchars($data['image'] ?? ''); ?>"
-    >
-
-    <br><br>
-
-
-    <label>Status</label>
-    <br>
-
-    <select name="status" required>
-
-        <option value="upcoming"
-            <?= $data['status'] === 'upcoming' ? 'selected' : ''; ?>>
-            Upcoming
-        </option>
-
-        <option value="ongoing"
-            <?= $data['status'] === 'ongoing' ? 'selected' : ''; ?>>
-            Ongoing
-        </option>
-
-        <option value="completed"
-            <?= $data['status'] === 'completed' ? 'selected' : ''; ?>>
-            Completed
-        </option>
-
-        <option value="cancelled"
-            <?= $data['status'] === 'cancelled' ? 'selected' : ''; ?>>
-            Cancelled
-        </option>
-
-    </select>
-
-    <br><br>
+                        </div>
 
 
-    <button type="submit" name="update">
-        Update
-    </button>
+                        <!-- Nama Event -->
+                        <div class="mb-3">
 
-</form>
+                            <label
+                                for="name"
+                                class="form-label"
+                            >
+                                Nama Event
+                            </label>
 
-<br>
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                class="form-control"
+                                value="<?= htmlspecialchars($data['name']) ?>"
+                                required
+                            >
 
-<a href="index.php">
-    Kembali
-</a>
+                        </div>
 
-</body>
 
-</html>
+                        <!-- Deskripsi -->
+                        <div class="mb-3">
+
+                            <label
+                                for="description"
+                                class="form-label"
+                            >
+                                Deskripsi
+                            </label>
+
+                            <textarea
+                                name="description"
+                                id="description"
+                                class="form-control"
+                                rows="4"
+                            ><?= htmlspecialchars($data['description'] ?? '') ?></textarea>
+
+                        </div>
+
+
+                        <!-- Lokasi -->
+                        <div class="mb-3">
+
+                            <label
+                                for="location"
+                                class="form-label"
+                            >
+                                Lokasi
+                            </label>
+
+                            <input
+                                type="text"
+                                name="location"
+                                id="location"
+                                class="form-control"
+                                value="<?= htmlspecialchars($data['location']) ?>"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Tanggal -->
+                        <div class="mb-3">
+
+                            <label
+                                for="event_date"
+                                class="form-label"
+                            >
+                                Tanggal Event
+                            </label>
+
+                            <input
+                                type="date"
+                                name="event_date"
+                                id="event_date"
+                                class="form-control"
+                                value="<?= htmlspecialchars($data['event_date']) ?>"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Waktu -->
+                        <div class="mb-3">
+
+                            <label
+                                for="event_time"
+                                class="form-label"
+                            >
+                                Waktu Event
+                            </label>
+
+                            <input
+                                type="time"
+                                name="event_time"
+                                id="event_time"
+                                class="form-control"
+                                value="<?= htmlspecialchars($data['event_time']) ?>"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Image -->
+                        <div class="mb-3">
+
+                            <label
+                                for="image"
+                                class="form-label"
+                            >
+                                Image
+                            </label>
+
+                            <input
+                                type="text"
+                                name="image"
+                                id="image"
+                                class="form-control"
+                                value="<?= htmlspecialchars($data['image'] ?? '') ?>"
+                            >
+
+                        </div>
+
+
+                        <!-- Status -->
+                        <div class="mb-3">
+
+                            <label
+                                for="status"
+                                class="form-label"
+                            >
+                                Status
+                            </label>
+
+                            <select
+                                name="status"
+                                id="status"
+                                class="form-select"
+                                required
+                            >
+
+                                <option
+                                    value="upcoming"
+                                    <?= $data['status'] === 'upcoming' ? 'selected' : '' ?>
+                                >
+                                    Upcoming
+                                </option>
+
+                                <option
+                                    value="ongoing"
+                                    <?= $data['status'] === 'ongoing' ? 'selected' : '' ?>
+                                >
+                                    Ongoing
+                                </option>
+
+                                <option
+                                    value="completed"
+                                    <?= $data['status'] === 'completed' ? 'selected' : '' ?>
+                                >
+                                    Completed
+                                </option>
+
+                                <option
+                                    value="cancelled"
+                                    <?= $data['status'] === 'cancelled' ? 'selected' : '' ?>
+                                >
+                                    Cancelled
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Button -->
+                        <button
+                            type="submit"
+                            name="update"
+                            class="btn btn-primary"
+                        >
+                            Update
+                        </button>
+
+                        <a
+                            href="index.php"
+                            class="btn btn-secondary"
+                        >
+                            Kembali
+                        </a>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<?php
+
+require_once "../templates/footer.php";
+
+?>

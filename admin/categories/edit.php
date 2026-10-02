@@ -46,70 +46,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<main class="app-main">
 
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Category</title>
-</head>
+    <!-- Header -->
+    <div class="app-content-header">
+        <div class="container-fluid">
 
-<body>
+            <h3 class="mb-0">Edit Category</h3>
 
-<h1>Edit Category</h1>
+        </div>
+    </div>
 
-<?php if ($error): ?>
+    <!-- Content -->
+    <div class="app-content">
+        <div class="container-fluid">
 
-    <p style="color:red;">
-        <?= htmlspecialchars($error) ?>
-    </p>
+            <div class="card">
 
-<?php endif; ?>
+                <div class="card-header">
+                    <h3 class="card-title">Form Edit Category</h3>
+                </div>
 
-<form method="POST">
+                <div class="card-body">
 
-    <p>
+                    <?php if ($error): ?>
 
-        <label>Nama Category</label>
+                        <div class="alert alert-danger">
+                            <?= htmlspecialchars($error) ?>
+                        </div>
 
-        <br>
+                    <?php endif; ?>
 
-        <input
-            type="text"
-            name="name"
-            maxlength="100"
-            value="<?= htmlspecialchars($data['name']) ?>"
-            required
-        >
+                    <form method="POST">
 
-    </p>
+                        <!-- Nama Category -->
+                        <div class="mb-3">
 
-    <p>
+                            <label for="name" class="form-label">
+                                Nama Category
+                            </label>
 
-        <label>Deskripsi</label>
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                maxlength="100"
+                                class="form-control"
+                                value="<?= htmlspecialchars($data['name']) ?>"
+                                required
+                            >
 
-        <br>
+                        </div>
 
-        <textarea
-            name="description"
-            rows="5"
-            cols="40"
-        ><?= htmlspecialchars($data['description'] ?? '') ?></textarea>
+                        <!-- Deskripsi -->
+                        <div class="mb-3">
 
-    </p>
+                            <label for="description" class="form-label">
+                                Deskripsi
+                            </label>
 
-    <button type="submit">
-        Update
-    </button>
+                            <textarea
+                                name="description"
+                                id="description"
+                                class="form-control"
+                                rows="5"
+                            ><?= htmlspecialchars($data['description'] ?? '') ?></textarea>
 
-    <a href="index.php">
-        Kembali
-    </a>
+                        </div>
 
-</form>
+                        <!-- Button -->
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Update
+                        </button>
 
-</body>
+                        <a
+                            href="index.php"
+                            class="btn btn-secondary"
+                        >
+                            Kembali
+                        </a>
 
-</html>
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<?php
+
+require_once "../templates/footer.php";
+
+?>
