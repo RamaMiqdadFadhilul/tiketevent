@@ -11,10 +11,10 @@ class DBconnection
         $host = "localhost";
         $port = "5432";
         $user = "postgres";
-        $pass = "NoLimitersGuys";
+        $pass = "rmfu2910";
 
         // Daftar kemungkinan nama database (lowercase vs format asli)
-        $dbCandidates = ["dbtiketevent", "DBtiketevent"];
+        $dbCandidates = ["dbtiketevent", "cobacoba"];
         $lastException = null;
 
         foreach ($dbCandidates as $dbname) {
