@@ -1,56 +1,270 @@
 <?php
 
-require_once __DIR__ . '/../../model/DBconnection.php';
-require_once __DIR__ . '/../../model/Respon.php';
-require_once __DIR__ . '/ticket.php';
-
-class TicketCreator
-{
-    private DBconnection $db;
-
-    public function __construct(DBconnection $db)
-    {
-        $this->db = $db;
-    }
-
-    public function simpanTiket(Ticket $tiket)
-    {
-        $sql = "INSERT INTO tickets (event_id, name, price, stock) VALUES (:event_id, :name, :price, :stock)";
-        $params = [
-            ':event_id' => $tiket->getEventId(),
-            ':name'     => $tiket->getName(),
-            ':price'    => $tiket->getPrice(),
-            ':stock'    => $tiket->getStock()
-        ];
-
-        return $this->db->send_query($sql, $params);
-    }
-}
-
-// ==========================================
-// TESTING CREATE
-// ==========================================
-echo "=== TESTING CREATE TIKET KE POSTGRESQL ===\n\n";
+require_once "../../bootstrap.php";
 
 $db = new DBconnection();
-$creator = new TicketCreator($db);
+$ticket = new Ticket($db);
 
-try {
-    $tiketBaru = new Ticket(null, 1, "PRESALE FESTIVAL UNAIR", 85000, 75);
+$message = '';
+$success = false;
 
-    $respon = $creator->simpanTiket($tiketBaru);
-    $dumpRespon = serialize($respon);
+// Ambil data event
+$eventsResult = $db->send_query(
+    "SELECT id, name
+     FROM events
+     ORDER BY event_date, event_time"
+);
 
-    if (str_contains(strtolower($dumpRespon), 'berhasil')) {
-        echo "[SUKSES] Data tiket berhasil masuk ke PostgreSQL!\n";
-        echo "Event ID : " . $tiketBaru->getEventId() . "\n";
-        echo "Nama     : " . $tiketBaru->getName() . "\n";
-        echo "Harga    : Rp " . number_format($tiketBaru->getPrice(), 0, ',', '.') . "\n";
-        echo "Stok     : " . $tiketBaru->getStock() . " pcs\n";
+$events = $eventsResult->data;
+
+// Proses submit
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $event_id = (int) ($_POST['event_id'] ?? 0);
+    $name = trim($_POST['name'] ?? '');
+    $price = (float) ($_POST['price'] ?? 0);
+    $stock = (int) ($_POST['stock'] ?? 0);
+
+    if ($event_id <= 0 || $name === '' || $price < 0 || $stock < 0) {
+
+        $message = 'Data tiket tidak valid.';
+
     } else {
-        echo "[GAGAL] Database menolak eksekusi.\n";
-    }
 
-} catch (Exception $e) {
-    echo "[ERROR] " . $e->getMessage() . "\n";
+        $result = $ticket->insert([
+            'event_id' => $event_id,
+            'name' => $name,
+            'price' => $price,
+            'stock' => $stock
+        ]);
+
+        if ($result->success) {
+
+            header("Location: index.php");
+            exit;
+
+        } else {
+
+            $message = $result->message;
+
+        }
+    }
 }
+
+?>
+
+<?php require_once "../templates/header.php"; ?>
+<?php require_once "../templates/navbar.php"; ?>
+<?php require_once "../templates/sidebar.php"; ?>
+
+
+<div class="content-wrapper">
+
+    <!-- Header -->
+    <section class="content-header">
+        <div class="container-fluid">
+
+            <div class="row mb-2">
+
+                <div class="col-sm-6">
+                    <h1>Tambah Tiket</h1>
+                </div>
+
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+
+                        <li class="breadcrumb-item">
+                            <a href="../dashboard.php">
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <li class="breadcrumb-item">
+                            <a href="index.php">
+                                Tickets
+                            </a>
+                        </li>
+
+                        <li class="breadcrumb-item active">
+                            Tambah
+                        </li>
+
+                    </ol>
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- Content -->
+    <section class="content">
+
+        <div class="container-fluid">
+
+            <?php if ($message): ?>
+
+                <div class="alert alert-danger">
+                    <?= htmlspecialchars($message) ?>
+                </div>
+
+            <?php endif; ?>
+
+
+            <div class="card">
+
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Form Tambah Tiket
+                    </h3>
+                </div>
+
+
+                <form method="POST">
+
+                    <div class="card-body">
+
+                        <!-- Event -->
+                        <div class="form-group">
+
+                            <label for="event_id">
+                                Event
+                            </label>
+
+                            <select
+                                name="event_id"
+                                id="event_id"
+                                class="form-control"
+                                required
+                            >
+
+                                <option value="">
+                                    -- Pilih Event --
+                                </option>
+
+                                <?php foreach ($events as $event): ?>
+
+                                    <option
+                                        value="<?= $event['id'] ?>"
+                                        <?= (
+                                            ($_POST['event_id'] ?? '') == $event['id']
+                                        ) ? 'selected' : '' ?>
+                                    >
+                                        <?= htmlspecialchars($event['name']) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Nama Tiket -->
+                        <div class="form-group">
+
+                            <label for="name">
+                                Nama Tiket
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                class="form-control"
+                                placeholder="Contoh: VIP Pass"
+                                value="<?= htmlspecialchars($_POST['name'] ?? '') ?>"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Harga -->
+                        <div class="form-group">
+
+                            <label for="price">
+                                Harga
+                            </label>
+
+                            <div class="input-group">
+
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">
+                                        Rp
+                                    </span>
+                                </div>
+
+                                <input
+                                    type="number"
+                                    name="price"
+                                    id="price"
+                                    class="form-control"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="500000"
+                                    value="<?= htmlspecialchars($_POST['price'] ?? '') ?>"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Stok -->
+                        <div class="form-group">
+
+                            <label for="stock">
+                                Stok
+                            </label>
+
+                            <input
+                                type="number"
+                                name="stock"
+                                id="stock"
+                                class="form-control"
+                                min="0"
+                                placeholder="100"
+                                value="<?= htmlspecialchars($_POST['stock'] ?? '') ?>"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-footer">
+
+                        <a
+                            href="index.php"
+                            class="btn btn-secondary"
+                        >
+                            <i class="fas fa-arrow-left"></i>
+                            Kembali
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            <i class="fas fa-save"></i>
+                            Simpan
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<?php require_once "../templates/footer.php"; ?>

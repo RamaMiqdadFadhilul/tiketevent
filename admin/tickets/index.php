@@ -1,87 +1,175 @@
 <?php
 
-// 1. Panggil bootstrap layout global
-require_once __DIR__ . '/../../bootstrap.php';
+require_once "../../bootstrap.php";
 
-// 2. Panggil koneksi DB, Respon, dan Model Ticket
-require_once __DIR__ . '/../../model/DBconnection.php';
-require_once __DIR__ . '/../../model/Respon.php';
-require_once __DIR__ . '/ticket.php';
-
-class TicketReader
-{
-    private DBconnection $db;
-
-    public function __construct(DBconnection $db)
-    {
-        $this->db = $db;
-    }
-
-    public function ambilSemua(): array
-    {
-        $sql = "SELECT id, event_id, name, price, stock FROM tickets ORDER BY id ASC";
-        $respon = $this->db->send_query($sql);
-
-        $rows = $respon->data ?? [];
-
-        $daftarTiket = [];
-        foreach ($rows as $row) {
-            $daftarTiket[] = new Ticket(
-                (int)$row['id'],
-                (int)$row['event_id'],
-                $row['name'],
-                (float)$row['price'],
-                (int)$row['stock']
-            );
-        }
-
-        return $daftarTiket;
-    }
-}
-
-// Inisialisasi DB & Ambil Data
 $db = new DBconnection();
-$reader = new TicketReader($db);
-$semuaTiket = $reader->ambilSemua();
+$ticket = new Ticket($db);
+
+$tickets = $ticket->find_all();
+
 ?>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Daftar Tiket</h2>
-        <a href="create_ticket.php" class="btn btn-primary btn-sm">Tambah Tiket</a>
-    </div>
+<?php require_once "../templates/header.php"; ?>
+<?php require_once "../templates/navbar.php"; ?>
+<?php require_once "../templates/sidebar.php"; ?>
 
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
-            <tr>
-                <th>ID</th>
-                <th>Event ID</th>
-                <th>Nama Tiket</th>
-                <th>Harga</th>
-                <th>Stok</th>
-                <th>Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($semuaTiket)): ?>
-                <tr>
-                    <td colspan="6" class="text-center">Belum ada data tiket.</td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($semuaTiket as $t): ?>
-                    <tr>
-                        <td><?= $t->getId(); ?></td>
-                        <td><?= $t->getEventId(); ?></td>
-                        <td><?= htmlspecialchars($t->getName()); ?></td>
-                        <td>Rp <?= number_format($t->getPrice(), 0, ',', '.'); ?></td>
-                        <td><?= $t->getStock(); ?></td>
-                        <td>
-                            <a href="update.php?id=<?= $t->getId(); ?>" class="btn btn-warning btn-sm">Edit</a>
-                            <a href="delete.php?id=<?= $t->getId(); ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus tiket ini?');">Hapus</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+<div class="content-wrapper">
+
+    <!-- Header -->
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1>Tickets</h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Content -->
+    <section class="content">
+        <div class="container-fluid">
+
+            <div class="card">
+
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Daftar Tiket
+                    </h3>
+
+                    <div class="card-tools">
+                        <a href="create.php" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i>
+                            Tambah Tiket
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="table-responsive">
+
+                        <table class="table table-bordered table-hover">
+
+                            <thead>
+                                <tr>
+                                    <th width="60">ID</th>
+                                    <th>Event</th>
+                                    <th>Nama Tiket</th>
+                                    <th>Harga</th>
+                                    <th>Stok</th>
+                                    <th width="150">Aksi</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                            <?php if (empty($tickets)): ?>
+
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        Belum ada tiket.
+                                    </td>
+                                </tr>
+
+                            <?php else: ?>
+
+                                <?php foreach ($tickets as $item): ?>
+
+                                    <?php
+
+                                    $eventResult = $db->send_query(
+                                        "SELECT name FROM events WHERE id = :id",
+                                        ['id' => $item['event_id']]
+                                    );
+
+                                    $event = $eventResult->data[0]['name']
+                                        ?? 'Event tidak ditemukan';
+
+                                    ?>
+
+                                    <tr>
+
+                                        <td>
+                                            <?= $item['id'] ?>
+                                        </td>
+
+                                        <td>
+                                            <?= htmlspecialchars($event) ?>
+                                        </td>
+
+                                        <td>
+                                            <?= htmlspecialchars($item['name']) ?>
+                                        </td>
+
+                                        <td>
+                                            Rp <?= number_format(
+                                                $item['price'],
+                                                0,
+                                                ',',
+                                                '.'
+                                            ) ?>
+                                        </td>
+
+                                        <td>
+
+                                            <?php if ($item['stock'] > 0): ?>
+
+                                                <span class="badge badge-success">
+                                                    <?= $item['stock'] ?>
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span class="badge badge-danger">
+                                                    Habis
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </td>
+
+                                        <td>
+
+                                            <a
+                                                href="update.php?id=<?= $item['id'] ?>"
+                                                class="btn btn-warning btn-sm"
+                                            >
+                                                <i class="fas fa-edit"></i>
+                                                Edit
+                                            </a>
+
+                                            <a
+                                                href="delete.php?id=<?= $item['id'] ?>"
+                                                class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Yakin ingin menghapus tiket ini?')"
+                                            >
+                                                <i class="fas fa-trash"></i>
+                                                Hapus
+                                            </a>
+
+                                        </td>
+
+                                    </tr>
+
+                                <?php endforeach; ?>
+
+                            <?php endif; ?>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </section>
+
 </div>
+
+<?php require_once "../templates/footer.php"; ?>

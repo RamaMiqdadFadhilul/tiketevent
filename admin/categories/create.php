@@ -36,63 +36,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<main class="app-main">
 
-<head>
-    <meta charset="UTF-8">
-    <title>Tambah Category</title>
-</head>
+    <!-- Header -->
+    <div class="app-content-header">
+        <div class="container-fluid">
 
-<body>
+            <h3 class="mb-0">Tambah Category</h3>
 
-<h1>Tambah Category</h1>
+        </div>
+    </div>
 
-<?php if ($error): ?>
+    <!-- Content -->
+    <div class="app-content">
+        <div class="container-fluid">
 
-    <p style="color:red;">
-        <?= htmlspecialchars($error) ?>
-    </p>
+            <div class="card">
 
-<?php endif; ?>
+                <div class="card-header">
+                    <h3 class="card-title">Form Tambah Category</h3>
+                </div>
 
-<form method="POST">
+                <div class="card-body">
 
-    <p>
-        <label>Nama Category</label>
-        <br>
+                    <?php if ($error): ?>
 
-        <input
-            type="text"
-            name="name"
-            maxlength="100"
-            required
-        >
-    </p>
+                        <div class="alert alert-danger">
+                            <?= htmlspecialchars($error) ?>
+                        </div>
 
-    <p>
-        <label>Deskripsi</label>
-        <br>
+                    <?php endif; ?>
 
-        <textarea
-            name="description"
-            rows="5"
-            cols="40"
-        ></textarea>
-    </p>
+                    <form method="POST">
 
-    <button type="submit">
-        Simpan
-    </button>
+                        <!-- Nama Category -->
+                        <div class="mb-3">
 
-    <a href="index.php">
-        Kembali
-    </a>
+                            <label for="name" class="form-label">
+                                Nama Category
+                            </label>
 
-</form>
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                class="form-control"
+                                maxlength="100"
+                                required
+                            >
 
-</body>
+                        </div>
 
-</html>
+                        <!-- Deskripsi -->
+                        <div class="mb-3">
+
+                            <label for="description" class="form-label">
+                                Deskripsi
+                            </label>
+
+                            <textarea
+                                name="description"
+                                id="description"
+                                class="form-control"
+                                rows="5"
+                            ></textarea>
+
+                        </div>
+
+                        <!-- Button -->
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Simpan
+                        </button>
+
+                        <a
+                            href="index.php"
+                            class="btn btn-secondary"
+                        >
+                            Kembali
+                        </a>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<?php
+
+require_once "../templates/footer.php";
+
+?>

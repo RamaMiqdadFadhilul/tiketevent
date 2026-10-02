@@ -60,92 +60,248 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $categories = $db->send_query(
     "SELECT * FROM categories ORDER BY name"
 )->data;
+
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Tambah Event</title>
-</head>
-<body>
+<main class="app-main">
 
-<h1>Tambah Event</h1>
+    <!-- Header -->
+    <div class="app-content-header">
+        <div class="container-fluid">
 
-<?php if (isset($error)): ?>
-    <p style="color: red;">
-        <?= htmlspecialchars($error) ?>
-    </p>
-<?php endif; ?>
+            <h3 class="mb-0">Tambah Event</h3>
 
-<form method="POST">
+        </div>
+    </div>
 
-    <label>Kategori</label>
-    <br>
-    <select name="category_id" required>
-        <option value="">-- Pilih Kategori --</option>
 
-        <?php foreach ($categories as $category): ?>
-            <option value="<?= $category['id'] ?>">
-                <?= htmlspecialchars($category['name']) ?>
-            </option>
-        <?php endforeach; ?>
+    <!-- Content -->
+    <div class="app-content">
+        <div class="container-fluid">
 
-    </select>
+            <div class="card">
 
-    <br><br>
+                <div class="card-header">
+                    <h3 class="card-title">Form Tambah Event</h3>
+                </div>
 
-    <label>Nama Event</label>
-    <br>
-    <input type="text" name="name" required>
+                <div class="card-body">
 
-    <br><br>
+                    <?php if (isset($error)): ?>
 
-    <label>Deskripsi</label>
-    <br>
-    <textarea name="description"></textarea>
+                        <div class="alert alert-danger">
+                            <?= htmlspecialchars($error) ?>
+                        </div>
 
-    <br><br>
+                    <?php endif; ?>
 
-    <label>Lokasi</label>
-    <br>
-    <input type="text" name="location" required>
 
-    <br><br>
+                    <form method="POST">
 
-    <label>Tanggal Event</label>
-    <br>
-    <input type="date" name="event_date" required>
+                        <!-- Category -->
+                        <div class="mb-3">
 
-    <br><br>
+                            <label for="category_id" class="form-label">
+                                Kategori
+                            </label>
 
-    <label>Waktu Event</label>
-    <br>
-    <input type="time" name="event_time" required>
+                            <select
+                                name="category_id"
+                                id="category_id"
+                                class="form-select"
+                                required
+                            >
 
-    <br><br>
+                                <option value="">
+                                    -- Pilih Kategori --
+                                </option>
 
-    <label>Image</label>
-    <br>
-    <input type="text" name="image">
+                                <?php foreach ($categories as $category): ?>
 
-    <br><br>
+                                    <option value="<?= $category['id'] ?>">
+                                        <?= htmlspecialchars($category['name']) ?>
+                                    </option>
 
-    <label>Status</label>
-    <br>
-    <select name="status" required>
-        <option value="upcoming">Upcoming</option>
-        <option value="ongoing">Ongoing</option>
-        <option value="completed">Completed</option>
-        <option value="cancelled">Cancelled</option>
-    </select>
+                                <?php endforeach; ?>
 
-    <br><br>
+                            </select>
 
-    <button type="submit">Simpan</button>
-    <a href="index.php">Kembali</a>
+                        </div>
 
-</form>
 
-</body>
-</html>
+                        <!-- Nama Event -->
+                        <div class="mb-3">
+
+                            <label for="name" class="form-label">
+                                Nama Event
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                id="name"
+                                class="form-control"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Deskripsi -->
+                        <div class="mb-3">
+
+                            <label for="description" class="form-label">
+                                Deskripsi
+                            </label>
+
+                            <textarea
+                                name="description"
+                                id="description"
+                                class="form-control"
+                                rows="4"
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- Lokasi -->
+                        <div class="mb-3">
+
+                            <label for="location" class="form-label">
+                                Lokasi
+                            </label>
+
+                            <input
+                                type="text"
+                                name="location"
+                                id="location"
+                                class="form-control"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Tanggal -->
+                        <div class="mb-3">
+
+                            <label for="event_date" class="form-label">
+                                Tanggal Event
+                            </label>
+
+                            <input
+                                type="date"
+                                name="event_date"
+                                id="event_date"
+                                class="form-control"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Waktu -->
+                        <div class="mb-3">
+
+                            <label for="event_time" class="form-label">
+                                Waktu Event
+                            </label>
+
+                            <input
+                                type="time"
+                                name="event_time"
+                                id="event_time"
+                                class="form-control"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- Image -->
+                        <div class="mb-3">
+
+                            <label for="image" class="form-label">
+                                Image
+                            </label>
+
+                            <input
+                                type="text"
+                                name="image"
+                                id="image"
+                                class="form-control"
+                            >
+
+                        </div>
+
+
+                        <!-- Status -->
+                        <div class="mb-3">
+
+                            <label for="status" class="form-label">
+                                Status
+                            </label>
+
+                            <select
+                                name="status"
+                                id="status"
+                                class="form-select"
+                                required
+                            >
+
+                                <option value="upcoming">
+                                    Upcoming
+                                </option>
+
+                                <option value="ongoing">
+                                    Ongoing
+                                </option>
+
+                                <option value="completed">
+                                    Completed
+                                </option>
+
+                                <option value="cancelled">
+                                    Cancelled
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Button -->
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
+                            Simpan
+                        </button>
+
+                        <a
+                            href="index.php"
+                            class="btn btn-secondary"
+                        >
+                            Kembali
+                        </a>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<?php
+
+require_once "../templates/footer.php";
+
+?>

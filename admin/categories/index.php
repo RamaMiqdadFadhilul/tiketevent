@@ -1,4 +1,4 @@
-<<?php
+<?php
 
 require_once "../../bootstrap.php";
 
@@ -8,85 +8,144 @@ $category = new Category($db);
 
 $categories = $category->find_all();
 
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<main class="app-main">
 
-<head>
-    <meta charset="UTF-8">
-    <title>Categories</title>
-</head>
+    <!-- Header -->
+    <div class="app-content-header">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3 class="mb-0">Categories</h3>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<body>
+    <!-- Content -->
+    <div class="app-content">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Data Category
+                    </h3>
+                    <div class="card-tools">
+                        <a href="create.php" class="btn btn-primary btn-sm">
+                            + Tambah Category
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <?php if (isset($_GET['error'])): ?>
 
-<h1>Categories</h1>
+                        <div id="errorAlert" class="alert alert-danger" role="alert">
+                            <?= htmlspecialchars($_GET['error']) ?>
 
-<a href="create.php">+ Tambah Category</a>
+                            <button
+                                type="button"
+                                onclick="document.getElementById('errorAlert').remove()"
+                                style="
+                                    float: right;
+                                    border: none;
+                                    background: none;
+                                    font-size: 24px;
+                                    line-height: 1;
+                                    cursor: pointer;
+                                "
+                            >
+                                &times;
+                            </button>
+                        </div>
 
-<br><br>
+                        <script>
+                            window.history.replaceState({}, document.title, 'index.php');
+                        </script>
 
-<table border="1" cellpadding="10">
+                    <?php endif; ?>
+                    <table class="table table-bordered table-hover">
 
-    <thead>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">No.</th>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th style="width: 150px;">Aksi</th>
+                            </tr>
+                        </thead>
 
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Created At</th>
-            <th>Aksi</th>
-        </tr>
+                        <tbody>
 
-    </thead>
+                            <?php if (empty($categories)): ?>
 
-    <tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        Belum ada data category.
+                                    </td>
+                                </tr>
 
-        <?php foreach ($categories as $item): ?>
+                            <?php else: ?>
 
-            <tr>
+                                <?php $no = 1; ?>
 
-                <td>
-                    <?= htmlspecialchars($item['id']) ?>
-                </td>
+                                <?php foreach ($categories as $item): ?>
 
-                <td>
-                    <?= htmlspecialchars($item['name']) ?>
-                </td>
+                                    <tr>
 
-                <td>
-                    <?= htmlspecialchars($item['description'] ?? '') ?>
-                </td>
+                                        <td>
+                                            <?= $no++ ?>
+                                        </td>
 
-                <td>
-                    <?= htmlspecialchars($item['created_at']) ?>
-                </td>
+                                        <td>
+                                            <?= htmlspecialchars($item['name']) ?>
+                                        </td>
 
-                <td>
+                                        <td>
+                                            <?= htmlspecialchars($item['description'] ?? '') ?>
+                                        </td>
 
-                    <a href="edit.php?id=<?= $item['id'] ?>">
-                        Edit
-                    </a>
 
-                    |
+                                        <td>
 
-                    <a
-                        href="delete.php?id=<?= $item['id'] ?>"
-                        onclick="return confirm('Yakin ingin menghapus data ini?')"
-                    >
-                        Hapus
-                    </a>
+                                            <a
+                                                href="edit.php?id=<?= $item['id'] ?>"
+                                                class="btn btn-warning btn-sm"
+                                            >
+                                                Edit
+                                            </a>
 
-                </td>
+                                            <a
+                                                href="delete.php?id=<?= $item['id'] ?>"
+                                                class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Yakin ingin menghapus data ini?')"
+                                            >
+                                                Hapus
+                                            </a>
 
-            </tr>
+                                        </td>
 
-        <?php endforeach; ?>
+                                    </tr>
 
-    </tbody>
+                                <?php endforeach; ?>
 
-</table>
+                            <?php endif; ?>
 
-</body>
+                        </tbody>
 
-</html>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<?php
+
+require_once "../templates/footer.php";
+
+?>

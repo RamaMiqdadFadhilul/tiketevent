@@ -7,76 +7,161 @@ $db = new DBconnection();
 $event = new Event($db);
 
 $data = $event->find_all();
+
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
 ?>
 
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Data Events</title>
-</head>
+<main class="app-main">
 
-<body>
+    <!-- Header -->
+    <div class="app-content-header">
+        <div class="container-fluid">
 
-<h1>Data Events</h1>
+            <div class="row">
+                <div class="col-sm-6">
+                    <h3 class="mb-0">Events</h3>
+                </div>
+            </div>
 
-<a href="tambah.php">Tambah Event</a>
+        </div>
+    </div>
 
-<br><br>
 
-<table border="1" cellpadding="10">
+    <!-- Content -->
+    <div class="app-content">
+        <div class="container-fluid">
 
-    <tr>
-        <th>ID</th>
-        <th>Category</th>
-        <th>Nama Event</th>
-        <th>Deskripsi</th>
-        <th>Lokasi</th>
-        <th>Tanggal</th>
-        <th>Waktu</th>
-        <th>Status</th>
-        <th>Aksi</th>
-    </tr>
+            <div class="card">
 
-    <?php foreach ($data as $row): ?>
+                <!-- Card Header -->
+                <div class="card-header">
+                    <h3 class="card-title">Data Event</h3>
 
-    <tr>
+                    <div class="card-tools">
+                        <a
+                            href="tambah.php"
+                            class="btn btn-primary btn-sm"
+                        >
+                            + Tambah Event
+                        </a>
+                    </div>
+                </div>
 
-        <td><?= $row['id']; ?></td>
 
-        <td><?= $row['category_id']; ?></td>
+                <!-- Card Body -->
+                <div class="card-body">
 
-        <td><?= htmlspecialchars($row['name']); ?></td>
+                    <?php if (empty($data)): ?>
 
-        <td><?= htmlspecialchars($row['description'] ?? ''); ?></td>
+                        <div class="alert alert-info">
+                            Belum ada data event.
+                        </div>
 
-        <td><?= htmlspecialchars($row['location']); ?></td>
+                    <?php else: ?>
 
-        <td><?= $row['event_date']; ?></td>
+                        <div class="table-responsive">
 
-        <td><?= $row['event_time']; ?></td>
+                            <table class="table table-bordered table-hover">
 
-        <td><?= $row['status']; ?></td>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">No.</th>
+                                        <th>Category</th>
+                                        <th>Nama Event</th>
+                                        <th>Deskripsi</th>
+                                        <th>Lokasi</th>
+                                        <th>Tanggal</th>
+                                        <th>Waktu</th>
+                                        <th>Status</th>
+                                        <th style="width: 150px;">Aksi</th>
+                                    </tr>
+                                </thead>
 
-        <td>
-            <a href="edit.php?id=<?= $row['id']; ?>">
-                Edit
-            </a>
+                                <tbody>
 
-            |
+                                    <?php $no = 1; ?>
 
-            <a
-                href="hapus.php?id=<?= $row['id']; ?>"
-                onclick="return confirm('Yakin ingin menghapus event ini?')"
-            >
-                Hapus
-            </a>
-        </td>
+                                    <?php foreach ($data as $row): ?>
 
-    </tr>
+                                        <tr>
 
-    <?php endforeach; ?>
+                                            <td>
+                                                <?= $no++ ?>
+                                            </td>
 
-</table>
+                                            <td>
+                                                <?= htmlspecialchars($row['category_id']) ?>
+                                            </td>
 
-</body>
-</html>
+                                            <td>
+                                                <?= htmlspecialchars($row['name']) ?>
+                                            </td>
+
+                                            <td>
+                                                <?= htmlspecialchars($row['description'] ?? '') ?>
+                                            </td>
+
+                                            <td>
+                                                <?= htmlspecialchars($row['location']) ?>
+                                            </td>
+
+                                            <td>
+                                                <?= htmlspecialchars($row['event_date']) ?>
+                                            </td>
+
+                                            <td>
+                                                <?= htmlspecialchars($row['event_time']) ?>
+                                            </td>
+
+                                            <td>
+                                                <?= htmlspecialchars($row['status']) ?>
+                                            </td>
+
+                                            <td>
+
+                                                <a
+                                                    href="edit.php?id=<?= $row['id'] ?>"
+                                                    class="btn btn-warning btn-sm"
+                                                >
+                                                    Edit
+                                                </a>
+
+                                                <a
+                                                    href="hapus.php?id=<?= $row['id'] ?>"
+                                                    class="btn btn-danger btn-sm"
+                                                    onclick="return confirm('Yakin ingin menghapus event ini?')"
+                                                >
+                                                    Hapus
+                                                </a>
+
+                                            </td>
+
+                                        </tr>
+
+                                    <?php endforeach; ?>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</main>
+
+<?php
+
+require_once "../templates/footer.php";
+
+?>
