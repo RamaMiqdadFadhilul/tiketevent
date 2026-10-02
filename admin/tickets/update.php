@@ -1,30 +1,164 @@
 <?php
 
-require_once __DIR__ . '/../../model/DBconnection.php';
-require_once __DIR__ . '/../../model/Respon.php';
-require_once __DIR__ . '/ticket.php';
+require_once "../../bootstrap.php";
 
-class TicketUpdater
-{
-    private DBconnection $db;
+$db = new DBconnection();
+$ticket = new Ticket($db);
 
-    // Constructor untuk menerima instance koneksi
-    public function __construct(DBconnection $db)
-    {
-        $this->db = $db;
-    }
+$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-    // Method Update utama
-    public function update(Ticket $tiket)
-    {
-        $sql = "UPDATE tickets SET name = :name, price = :price, stock = :stock WHERE id = :id";
-        $params = [
-            ':id'    => $tiket->getId(),
-            ':name'  => $tiket->getName(),
-            ':price' => $tiket->getPrice(),
-            ':stock' => $tiket->getStock()
-        ];
+$data = $ticket->find_by_id($id);
 
-        return $this->db->send_query($sql, $params);
+if (!$data) {
+    echo "Ticket tidak ditemukan.";
+    exit;
+}
+
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $event_id = (int) $_POST['event_id'];
+    $name = trim($_POST['name']);
+    $price = (float) $_POST['price'];
+    $stock = (int) $_POST['stock'];
+
+    if ($event_id <= 0) {
+        $error = 'Event wajib dipilih.';
+    } elseif ($name === '') {
+        $error = 'Nama ticket wajib diisi.';
+    } elseif ($price < 0) {
+        $error = 'Harga tidak boleh kurang dari 0.';
+    } elseif ($stock < 0) {
+        $error = 'Stok tidak boleh kurang dari 0.';
+    } else {
+
+        $respon = $ticket->update($id, [
+            'event_id' => $event_id,
+            'name' => $name,
+            'price' => $price,
+            'stock' => $stock
+        ]);
+
+        if ($respon->success) {
+            header('Location: index.php');
+            exit;
+        }
+
+        $error = $respon->message;
     }
 }
+
+$events = $db->send_query(
+    "SELECT id, name
+     FROM events
+     ORDER BY event_date, event_time"
+)->data;
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Ticket</title>
+</head>
+
+<body>
+
+<h1>Edit Ticket</h1>
+
+<?php if ($error): ?>
+
+    <p style="color: red;">
+        <?= htmlspecialchars($error) ?>
+    </p>
+
+<?php endif; ?>
+
+<form method="POST">
+
+    <div>
+        <label for="event_id">Event</label>
+
+        <select name="event_id" id="event_id" required>
+
+            <option value="">
+                -- Pilih Event --
+            </option>
+
+            <?php foreach ($events as $event): ?>
+
+                <option
+                    value="<?= $event['id'] ?>"
+                    <?= $data['event_id'] == $event['id'] ? 'selected' : '' ?>
+                >
+                    <?= htmlspecialchars($event['name']) ?>
+                </option>
+
+            <?php endforeach; ?>
+
+        </select>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="name">Nama Ticket</label>
+
+        <input
+            type="text"
+            name="name"
+            id="name"
+            maxlength="100"
+            value="<?= htmlspecialchars($data['name']) ?>"
+            required
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="price">Harga</label>
+
+        <input
+            type="number"
+            name="price"
+            id="price"
+            min="0"
+            step="0.01"
+            value="<?= htmlspecialchars($data['price']) ?>"
+            required
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="stock">Stok</label>
+
+        <input
+            type="number"
+            name="stock"
+            id="stock"
+            min="0"
+            value="<?= htmlspecialchars($data['stock']) ?>"
+            required
+        >
+    </div>
+
+    <br>
+
+    <button type="submit">
+        Update
+    </button>
+
+    <a href="index.php">
+        Kembali
+    </a>
+
+</form>
+
+</body>
+</html>

@@ -1,56 +1,145 @@
 <?php
 
-require_once __DIR__ . '/../../model/DBconnection.php';
-require_once __DIR__ . '/../../model/Respon.php';
-require_once __DIR__ . '/ticket.php';
-
-class TicketCreator
-{
-    private DBconnection $db;
-
-    public function __construct(DBconnection $db)
-    {
-        $this->db = $db;
-    }
-
-    public function simpanTiket(Ticket $tiket)
-    {
-        $sql = "INSERT INTO tickets (event_id, name, price, stock) VALUES (:event_id, :name, :price, :stock)";
-        $params = [
-            ':event_id' => $tiket->getEventId(),
-            ':name'     => $tiket->getName(),
-            ':price'    => $tiket->getPrice(),
-            ':stock'    => $tiket->getStock()
-        ];
-
-        return $this->db->send_query($sql, $params);
-    }
-}
-
-// ==========================================
-// TESTING CREATE
-// ==========================================
-echo "=== TESTING CREATE TIKET KE POSTGRESQL ===\n\n";
+require_once "../../bootstrap.php";
 
 $db = new DBconnection();
-$creator = new TicketCreator($db);
+$ticket = new Ticket($db);
 
-try {
-    $tiketBaru = new Ticket(null, 1, "PRESALE FESTIVAL UNAIR", 85000, 75);
+$error = '';
 
-    $respon = $creator->simpanTiket($tiketBaru);
-    $dumpRespon = serialize($respon);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    if (str_contains(strtolower($dumpRespon), 'berhasil')) {
-        echo "[SUKSES] Data tiket berhasil masuk ke PostgreSQL!\n";
-        echo "Event ID : " . $tiketBaru->getEventId() . "\n";
-        echo "Nama     : " . $tiketBaru->getName() . "\n";
-        echo "Harga    : Rp " . number_format($tiketBaru->getPrice(), 0, ',', '.') . "\n";
-        echo "Stok     : " . $tiketBaru->getStock() . " pcs\n";
+    $event_id = (int) $_POST['event_id'];
+    $name = trim($_POST['name']);
+    $price = (float) $_POST['price'];
+    $stock = (int) $_POST['stock'];
+
+    if ($event_id <= 0) {
+        $error = 'Event wajib dipilih.';
+    } elseif ($name === '') {
+        $error = 'Nama ticket wajib diisi.';
+    } elseif ($price < 0) {
+        $error = 'Harga tidak boleh kurang dari 0.';
+    } elseif ($stock < 0) {
+        $error = 'Stok tidak boleh kurang dari 0.';
     } else {
-        echo "[GAGAL] Database menolak eksekusi.\n";
-    }
 
-} catch (Exception $e) {
-    echo "[ERROR] " . $e->getMessage() . "\n";
+        $respon = $ticket->insert([
+            'event_id' => $event_id,
+            'name' => $name,
+            'price' => $price,
+            'stock' => $stock
+        ]);
+
+        if ($respon->success) {
+            header('Location: index.php');
+            exit;
+        }
+
+        $error = $respon->message;
+    }
 }
+
+$events = $db->send_query(
+    "SELECT id, name
+     FROM events
+     ORDER BY event_date, event_time"
+)->data;
+
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Ticket</title>
+</head>
+
+<body>
+
+<h1>Tambah Ticket</h1>
+
+<?php if ($error): ?>
+
+    <p style="color: red;">
+        <?= htmlspecialchars($error) ?>
+    </p>
+
+<?php endif; ?>
+
+<form method="POST">
+
+    <div>
+        <label for="event_id">Event</label>
+        <select name="event_id" id="event_id" required>
+
+            <option value="">
+                -- Pilih Event --
+            </option>
+
+            <?php foreach ($events as $event): ?>
+
+                <option value="<?= $event['id'] ?>">
+                    <?= htmlspecialchars($event['name']) ?>
+                </option>
+
+            <?php endforeach; ?>
+
+        </select>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="name">Nama Ticket</label>
+        <input
+            type="text"
+            name="name"
+            id="name"
+            maxlength="100"
+            required
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="price">Harga</label>
+        <input
+            type="number"
+            name="price"
+            id="price"
+            min="0"
+            step="0.01"
+            required
+        >
+    </div>
+
+    <br>
+
+    <div>
+        <label for="stock">Stok</label>
+        <input
+            type="number"
+            name="stock"
+            id="stock"
+            min="0"
+            required
+        >
+    </div>
+
+    <br>
+
+    <button type="submit">
+        Simpan
+    </button>
+
+    <a href="index.php">
+        Kembali
+    </a>
+
+</form>
+
+</body>
+</html>

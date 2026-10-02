@@ -1,87 +1,150 @@
 <?php
 
-// 1. Panggil bootstrap layout global
-require_once __DIR__ . '/../../bootstrap.php';
+require_once "../../bootstrap.php";
 
-// 2. Panggil koneksi DB, Respon, dan Model Ticket
-require_once __DIR__ . '/../../model/DBconnection.php';
-require_once __DIR__ . '/../../model/Respon.php';
-require_once __DIR__ . '/ticket.php';
-
-class TicketReader
-{
-    private DBconnection $db;
-
-    public function __construct(DBconnection $db)
-    {
-        $this->db = $db;
-    }
-
-    public function ambilSemua(): array
-    {
-        $sql = "SELECT id, event_id, name, price, stock FROM tickets ORDER BY id ASC";
-        $respon = $this->db->send_query($sql);
-
-        $rows = $respon->data ?? [];
-
-        $daftarTiket = [];
-        foreach ($rows as $row) {
-            $daftarTiket[] = new Ticket(
-                (int)$row['id'],
-                (int)$row['event_id'],
-                $row['name'],
-                (float)$row['price'],
-                (int)$row['stock']
-            );
-        }
-
-        return $daftarTiket;
-    }
-}
-
-// Inisialisasi DB & Ambil Data
 $db = new DBconnection();
-$reader = new TicketReader($db);
-$semuaTiket = $reader->ambilSemua();
+$ticket = new Ticket($db);
+
+$tickets = $ticket->find_all();
+
 ?>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Daftar Tiket</h2>
-        <a href="create_ticket.php" class="btn btn-primary btn-sm">Tambah Tiket</a>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
 
-    <table class="table table-bordered table-striped">
-        <thead class="table-dark">
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Data Ticket</title>
+
+</head>
+
+<body>
+
+<h1>Data Ticket</h1>
+
+<a href="create.php">
+    + Tambah Ticket
+</a>
+
+<br>
+<br>
+
+<?php if (isset($_GET['error'])): ?>
+
+    <p style="color: red;">
+        <?= htmlspecialchars($_GET['error']) ?>
+    </p>
+
+<?php endif; ?>
+
+
+<?php if (empty($tickets)): ?>
+
+    <p>
+        Belum ada data ticket.
+    </p>
+
+<?php else: ?>
+
+    <table border="1" cellpadding="8" cellspacing="0">
+
+        <thead>
+
             <tr>
-                <th>ID</th>
-                <th>Event ID</th>
-                <th>Nama Tiket</th>
+
+                <th>No.</th>
+                <th>Event</th>
+                <th>Nama Ticket</th>
                 <th>Harga</th>
                 <th>Stok</th>
                 <th>Aksi</th>
+
             </tr>
+
         </thead>
+
         <tbody>
-            <?php if (empty($semuaTiket)): ?>
-                <tr>
-                    <td colspan="6" class="text-center">Belum ada data tiket.</td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($semuaTiket as $t): ?>
-                    <tr>
-                        <td><?= $t->getId(); ?></td>
-                        <td><?= $t->getEventId(); ?></td>
-                        <td><?= htmlspecialchars($t->getName()); ?></td>
-                        <td>Rp <?= number_format($t->getPrice(), 0, ',', '.'); ?></td>
-                        <td><?= $t->getStock(); ?></td>
-                        <td>
-                            <a href="update.php?id=<?= $t->getId(); ?>" class="btn btn-warning btn-sm">Edit</a>
-                            <a href="delete.php?id=<?= $t->getId(); ?>" class="btn btn-danger btn-sm" onclick="return confirm('Hapus tiket ini?');">Hapus</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
+
+        <?php $no = 1; ?>
+
+        <?php foreach ($tickets as $row): ?>
+
+            <?php
+
+            $eventResult = $db->send_query(
+                "SELECT name
+                 FROM events
+                 WHERE id = :id",
+                [
+                    'id' => $row['event_id']
+                ]
+            );
+
+            $eventName = $eventResult->data[0]['name'] ?? '-';
+
+            ?>
+
+            <tr>
+
+                <td>
+                    <?= $no++ ?>
+                </td>
+
+                <td>
+                    <?= htmlspecialchars($eventName) ?>
+                </td>
+
+                <td>
+                    <?= htmlspecialchars($row['name']) ?>
+                </td>
+
+                <td>
+                    Rp <?= number_format(
+                        $row['price'],
+                        0,
+                        ',',
+                        '.'
+                    ) ?>
+                </td>
+
+                <td>
+                    <?= htmlspecialchars($row['stock']) ?>
+                </td>
+
+                <td>
+
+                    <a href="update.php?id=<?= $row['id'] ?>">
+                        Edit
+                    </a>
+
+                    |
+
+                    <a
+                        href="delete.php?id=<?= $row['id'] ?>"
+                        onclick="return confirm('Yakin ingin menghapus ticket ini?')"
+                    >
+                        Hapus
+                    </a>
+
+                </td>
+
+            </tr>
+
+        <?php endforeach; ?>
+
         </tbody>
+
     </table>
-</div>
+
+<?php endif; ?>
+
+</body>
+
+</html>
