@@ -69,27 +69,45 @@ $payment_method = match ($order['payment_method']) {
 
                 <div class="col-3">
 
-                    <div class="text-muted">
-                        1. Pilih Kategori
-                    </div>
+                    <a
+                        href="index.php"
+                        class="text-decoration-none text-muted"
+                    >
+                        <div class="fw-semibold">
+                            1. Pilih Kategori
+                        </div>
+                    </a>
 
                 </div>
+
 
                 <div class="col-3">
 
-                    <div class="text-muted">
-                        2. Detail Pesanan
-                    </div>
+                    <a
+                        href="#"
+                        class="text-decoration-none text-muted"
+                    >
+                        <div>
+                            2. Detail Pesanan
+                        </div>
+                    </a>
 
                 </div>
+
 
                 <div class="col-3">
 
-                    <div class="text-muted">
-                        3. Metode Pembayaran
-                    </div>
+                    <a
+                        href="#"
+                        class="text-decoration-none text-muted"
+                    >
+                        <div>
+                            3. Metode Pembayaran
+                        </div>
+                    </a>
 
                 </div>
+
 
                 <div class="col-3">
 

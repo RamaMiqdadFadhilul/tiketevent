@@ -292,10 +292,5 @@ $_SESSION['order_success'] = [
     'payment_method' => $payment_method
 ];
 
-
-// ===============================
-// KE HALAMAN SELESAI
-// ===============================
-
 header("Location: order_success.php");
 exit;
