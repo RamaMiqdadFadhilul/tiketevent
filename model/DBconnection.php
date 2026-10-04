@@ -13,16 +13,18 @@ class DBconnection
     {
         $database_url = getenv('DATABASE_URL');
 
+        // Koneksi saat aplikasi dijalankan di Render
         if ($database_url) {
 
-            $conn_string = $database_url . " sslmode=require";
+            $conn_string = $database_url . "?sslmode=require";
 
         } else {
 
+            // Koneksi saat aplikasi dijalankan secara lokal
             $conn_string =
                 "host=localhost " .
                 "port=5432 " .
-                "dbname=ticketevent " .
+                "dbname=dbticketevent " .
                 "user=postgres " .
                 "password=PASSWORD_DATABASE_KAMU";
         }
