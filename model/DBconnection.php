@@ -2,11 +2,6 @@
 
 class DBconnection
 {
-    private string $host = "localhost";
-    private string $port = "5432";
-    private string $dbname = "NAMADB";
-    private string $username = "postgres";
-    private string $password = "PASSWORD";
     private $dbconn = null;
 
     public function __construct()
@@ -16,18 +11,27 @@ class DBconnection
 
     public function init_connect(): void
     {
-        $conn_string =
-            "host={$this->host} " .
-            "port={$this->port} " .
-            "dbname={$this->dbname} " .
-            "user={$this->username} " .
-            "password={$this->password}";
+        $database_url = getenv('DATABASE_URL');
+
+        if ($database_url) {
+
+            $conn_string = $database_url . " sslmode=require";
+
+        } else {
+
+            $conn_string =
+                "host=localhost " .
+                "port=5432 " .
+                "dbname=ticketevent " .
+                "user=postgres " .
+                "password=PASSWORD_DATABASE_KAMU";
+        }
 
         $this->dbconn = @pg_connect($conn_string);
 
         if (!$this->dbconn) {
             throw new DatabaseException(
-                "Koneksi ke database {$this->dbname} tidak dapat dibentuk."
+                "Koneksi ke database tidak dapat dibentuk."
             );
         }
     }
