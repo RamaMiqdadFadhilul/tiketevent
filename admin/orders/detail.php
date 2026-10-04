@@ -14,13 +14,16 @@ if ($order_id <= 0) {
 $order_result = $db->send_query(
     "SELECT *
      FROM orders
-     WHERE id = :id",
+     WHERE id = $1",
     [
-        'id' => $order_id
+        $order_id
     ]
 );
 
-if (!$order_result->success || empty($order_result->data)) {
+if (
+    !$order_result->success ||
+    empty($order_result->data)
+) {
     header("Location: index.php");
     exit;
 }
@@ -37,10 +40,10 @@ $item_result = $db->send_query(
         ON tickets.id = order_items.ticket_id
      JOIN events
         ON events.id = tickets.event_id
-     WHERE order_items.order_id = :order_id
+     WHERE order_items.order_id = $1
      ORDER BY order_items.id",
     [
-        'order_id' => $order_id
+        $order_id
     ]
 );
 
@@ -49,13 +52,19 @@ $order_items = $item_result->data;
 $payment_result = $db->send_query(
     "SELECT *
      FROM payments
-     WHERE order_id = :order_id",
+     WHERE order_id = $1",
     [
-        'order_id' => $order_id
+        $order_id
     ]
 );
 
 $payment = $payment_result->data[0] ?? null;
+
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
+
+?>
 
 require_once "../templates/header.php";
 require_once "../templates/navbar.php";
