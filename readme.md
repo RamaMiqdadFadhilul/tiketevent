@@ -6,6 +6,27 @@ Project ini dibuat untuk memenuhi tugas praktikum **Pengembangan Perangkat Lunak
 
 ---
 
+## Demo
+
+### User
+
+Halaman utama untuk pengguna dalam melihat event dan melakukan pemesanan tiket.
+
+[**Akses Website User**](https://tiketevent.onrender.com/user/index.php)
+
+### Admin
+
+Halaman admin untuk mengelola event, kategori, tiket, dan transaksi.
+
+[**Akses Admin**](https://tiketevent.onrender.com/admin/index.php)
+
+**Login Admin:**
+
+- **Email:** `admin@gmail.com`
+- **Password:** `password`
+
+---
+
 ## 👥 Anggota Kelompok
 
 | No. | NIM | Nama | Role |
