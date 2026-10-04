@@ -10,6 +10,11 @@ RUN sed -i 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf \
 
 COPY . /var/www/html/
 
+# Buat folder upload dan berikan izin ke Apache
+RUN mkdir -p /var/www/html/img \
+    && chown -R www-data:www-data /var/www/html/img \
+    && chmod -R 775 /var/www/html/img
+
 RUN a2enmod rewrite
 
 EXPOSE 10000
