@@ -3,51 +3,46 @@
 require_once "../../bootstrap.php";
 
 $db = new DBconnection();
+
 $ticket = new Ticket($db);
+$event = new Event($db);
 
 $id = (int) ($_GET['id'] ?? 0);
 
-if ($id <= 0) {
-    header("Location: index.php");
-    exit;
-}
-
-// Ambil data tiket
 $data = $ticket->find_by_id($id);
 
 if (!$data) {
-    header("Location: index.php");
+    header('Location: index.php');
     exit;
 }
 
-// Ambil data event
-$eventsResult = $db->send_query(
-    "SELECT id, name
-     FROM events
-     ORDER BY event_date, event_time"
-);
+$events = $event->find_all();
 
-$events = $eventsResult->data;
+$error = '';
 
-$message = '';
-
-
-// Proses update
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $event_id = (int) ($_POST['event_id'] ?? 0);
     $name = trim($_POST['name'] ?? '');
-    $price = (float) ($_POST['price'] ?? 0);
-    $stock = (int) ($_POST['stock'] ?? 0);
+    $price = $_POST['price'] ?? '';
+    $stock = $_POST['stock'] ?? '';
 
     if (
         $event_id <= 0 ||
         $name === '' ||
-        $price < 0 ||
-        $stock < 0
+        $price === '' ||
+        $stock === ''
     ) {
 
-        $message = 'Data tiket tidak valid.';
+        $error = 'Semua data ticket wajib diisi.';
+
+    } elseif ((float) $price < 0) {
+
+        $error = 'Harga ticket tidak boleh negatif.';
+
+    } elseif ((int) $stock < 0) {
+
+        $error = 'Stock ticket tidak boleh negatif.';
 
     } else {
 
@@ -60,230 +55,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($result->success) {
 
-            header("Location: index.php");
+            header('Location: index.php');
             exit;
 
-        } else {
-
-            $message = $result->message;
-
         }
+
+        $error = $result->message;
     }
 }
 
+require_once "../templates/header.php";
+require_once "../templates/navbar.php";
+require_once "../templates/sidebar.php";
 ?>
 
-<?php require_once "../templates/header.php"; ?>
-<?php require_once "../templates/navbar.php"; ?>
-<?php require_once "../templates/sidebar.php"; ?>
-
-
-<div class="content-wrapper">
-
-    <!-- Header -->
-    <section class="content-header">
+<main class="app-main">
+    <div class="app-content-header">
         <div class="container-fluid">
-
-            <div class="row mb-2">
-
-                <div class="col-sm-6">
-                    <h1>Edit Tiket</h1>
-                </div>
-
-                <div class="col-sm-6">
-
-                    <ol class="breadcrumb float-sm-right">
-
-                        <li class="breadcrumb-item">
-                            <a href="../dashboard.php">
-                                Dashboard
-                            </a>
-                        </li>
-
-                        <li class="breadcrumb-item">
-                            <a href="index.php">
-                                Tickets
-                            </a>
-                        </li>
-
-                        <li class="breadcrumb-item active">
-                            Edit
-                        </li>
-
-                    </ol>
-
-                </div>
-
-            </div>
-
+            <h3 class="mb-0">Edit Ticket</h3>
         </div>
-    </section>
-
-
-    <!-- Content -->
-    <section class="content">
-
+    </div>
+    <div class="app-content">
         <div class="container-fluid">
 
-            <?php if ($message): ?>
+            <?php if ($error): ?>
 
                 <div class="alert alert-danger">
-                    <?= htmlspecialchars($message) ?>
+                    <?= htmlspecialchars($error) ?>
                 </div>
 
             <?php endif; ?>
 
-
             <div class="card">
-
-                <div class="card-header">
-                    <h3 class="card-title">
-                        Form Edit Tiket
-                    </h3>
-                </div>
-
-
-                <form method="POST">
-
-                    <div class="card-body">
-
-                        <!-- Event -->
-                        <div class="form-group">
-
-                            <label for="event_id">
-                                Event
-                            </label>
-
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Event</label>
                             <select
                                 name="event_id"
-                                id="event_id"
-                                class="form-control"
+                                class="form-select"
                                 required
                             >
 
-                                <option value="">
-                                    -- Pilih Event --
-                                </option>
-
-                                <?php foreach ($events as $event): ?>
+                                <?php foreach ($events as $item): ?>
 
                                     <option
-                                        value="<?= $event['id'] ?>"
-                                        <?= $data['event_id'] == $event['id']
+                                        value="<?= $item['id'] ?>"
+                                        <?= $data['event_id'] == $item['id']
                                             ? 'selected'
                                             : '' ?>
                                     >
-                                        <?= htmlspecialchars($event['name']) ?>
+                                        <?= htmlspecialchars($item['name']) ?>
                                     </option>
 
                                 <?php endforeach; ?>
 
                             </select>
-
                         </div>
-
-
-                        <!-- Nama Tiket -->
-                        <div class="form-group">
-
-                            <label for="name">
-                                Nama Tiket
-                            </label>
-
+                        <div class="mb-3">
+                            <label class="form-label">Nama Ticket</label>
                             <input
                                 type="text"
                                 name="name"
-                                id="name"
                                 class="form-control"
-                                value="<?= htmlspecialchars($data['name']) ?>"
                                 required
+                                value="<?= htmlspecialchars($data['name']) ?>"
                             >
-
                         </div>
-
-
-                        <!-- Harga -->
-                        <div class="form-group">
-
-                            <label for="price">
-                                Harga
-                            </label>
-
-                            <div class="input-group">
-
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">
-                                        Rp
-                                    </span>
-                                </div>
-
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Harga</label>
                                 <input
                                     type="number"
                                     name="price"
-                                    id="price"
                                     class="form-control"
                                     min="0"
-                                    step="0.01"
-                                    value="<?= htmlspecialchars($data['price']) ?>"
                                     required
+                                    value="<?= htmlspecialchars($data['price']) ?>"
                                 >
-
                             </div>
-
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Stock</label>
+                                <input
+                                    type="number"
+                                    name="stock"
+                                    class="form-control"
+                                    min="0"
+                                    required
+                                    value="<?= htmlspecialchars($data['stock']) ?>"
+                                >
+                            </div>
                         </div>
-
-
-                        <!-- Stok -->
-                        <div class="form-group">
-
-                            <label for="stock">
-                                Stok
-                            </label>
-
-                            <input
-                                type="number"
-                                name="stock"
-                                id="stock"
-                                class="form-control"
-                                min="0"
-                                value="<?= htmlspecialchars($data['stock']) ?>"
-                                required
-                            >
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="card-footer">
-
                         <a
                             href="index.php"
                             class="btn btn-secondary"
                         >
-                            <i class="fas fa-arrow-left"></i>
                             Kembali
                         </a>
-
                         <button
                             type="submit"
                             class="btn btn-primary"
                         >
-                            <i class="fas fa-save"></i>
-                            Simpan Perubahan
+                            Update
                         </button>
-
-                    </div>
-
-                </form>
-
+                    </form>
+                </div>
             </div>
-
         </div>
-
-    </section>
-
-</div>
-
-
-<?php require_once "../templates/footer.php"; ?>
+    </div>
+</main>

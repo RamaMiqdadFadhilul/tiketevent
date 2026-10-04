@@ -2,289 +2,24 @@
 
 session_start();
 
-require_once "../bootstrap.php";
+require_once __DIR__ . "/../bootstrap.php";
 
 $db = new DBconnection();
 
 $event_id = (int) ($_POST['event_id'] ?? 0);
+
 $ticket_quantities = $_POST['tickets'] ?? [];
 
 $customer_name = trim($_POST['customer_name'] ?? '');
 $customer_email = trim($_POST['customer_email'] ?? '');
 $customer_phone = trim($_POST['customer_phone'] ?? '');
 
-// ===============================
-// PROSES BAYAR
-// ===============================
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['payment_method'])) {
-
-    $payment_method = $_POST['payment_method'];
-
-    if (
-        $event_id <= 0 ||
-        empty($ticket_quantities) ||
-        $customer_name === '' ||
-        $customer_email === '' ||
-        $customer_phone === ''
-    ) {
-        header("Location: index.php");
-        exit;
-    }
-
-    // Ambil ticket yang dipilih dari database
-    $ticket_ids = [];
-
-    foreach ($ticket_quantities as $ticket_id => $quantity) {
-        $ticket_id = (int) $ticket_id;
-        $quantity = (int) $quantity;
-
-        if ($ticket_id > 0 && $quantity > 0) {
-            $ticket_ids[$ticket_id] = $quantity;
-        }
-    }
-
-    if (empty($ticket_ids)) {
-        header(
-            "Location: select_ticket.php?event_id=" .
-            $event_id
-        );
-        exit;
-    }
-
-    $placeholders = [];
-    $params = [
-        'event_id' => $event_id
-    ];
-
-    foreach ($ticket_ids as $index => $ticket_id) {
-        $key = "ticket_" . $index;
-
-        $placeholders[] = ":" . $key;
-        $params[$key] = $ticket_id;
-    }
-
-    $result = $db->send_query(
-        "SELECT *
-         FROM tickets
-         WHERE event_id = :event_id
-         AND id IN (" . implode(',', $placeholders) . ")",
-        $params
-    );
-
-    if (!$result->success || empty($result->data)) {
-        die("Data tiket tidak ditemukan.");
-    }
-
-    $tickets = $result->data;
-
-    // ===============================
-    // HITUNG TOTAL
-    // ===============================
-
-    $total_amount = 0;
-
-    foreach ($tickets as $ticket) {
-
-        $quantity = $ticket_ids[$ticket['id']] ?? 0;
-
-        // Cek stok
-        if ($quantity > $ticket['stock']) {
-            die(
-                "Stok tiket " .
-                htmlspecialchars($ticket['name']) .
-                " tidak mencukupi."
-            );
-        }
-
-        $total_amount += $ticket['price'] * $quantity;
-    }
-
-    // ===============================
-    // BUAT ORDER CODE
-    // ===============================
-
-    $order_code = 'ORD-' . date('YmdHis') . '-' . rand(100, 999);
-
-    // ===============================
-    // INSERT ORDER
-    // ===============================
-
-    $order_result = $db->send_query(
-        "INSERT INTO orders
-            (
-                order_code,
-                customer_name,
-                customer_email,
-                customer_phone,
-                total_amount,
-                status
-            )
-         VALUES
-            (
-                :order_code,
-                :customer_name,
-                :customer_email,
-                :customer_phone,
-                :total_amount,
-                'pending'
-            )
-         RETURNING *",
-        [
-            'order_code' => $order_code,
-            'customer_name' => $customer_name,
-            'customer_email' => $customer_email,
-            'customer_phone' => $customer_phone,
-            'total_amount' => $total_amount
-        ]
-    );
-
-    if (!$order_result->success) {
-        die("Gagal membuat order: " . $order_result->message);
-    }
-
-    $order = $order_result->data[0];
-    $order_id = $order['id'];
-
-    // ===============================
-    // INSERT ORDER ITEMS
-    // ===============================
-
-    foreach ($tickets as $ticket) {
-
-        $quantity = $ticket_ids[$ticket['id']];
-        $price = $ticket['price'];
-        $subtotal = $price * $quantity;
-
-        $item_result = $db->send_query(
-            "INSERT INTO order_items
-                (
-                    order_id,
-                    ticket_id,
-                    quantity,
-                    price,
-                    subtotal
-                )
-             VALUES
-                (
-                    :order_id,
-                    :ticket_id,
-                    :quantity,
-                    :price,
-                    :subtotal
-                )",
-            [
-                'order_id' => $order_id,
-                'ticket_id' => $ticket['id'],
-                'quantity' => $quantity,
-                'price' => $price,
-                'subtotal' => $subtotal
-            ]
-        );
-
-        if (!$item_result->success) {
-            die(
-                "Gagal menyimpan detail order: " .
-                $item_result->message
-            );
-        }
-
-        // ===============================
-        // KURANGI STOK
-        // ===============================
-
-        $stock_result = $db->send_query(
-            "UPDATE tickets
-             SET stock = stock - :quantity
-             WHERE id = :ticket_id",
-            [
-                'quantity' => $quantity,
-                'ticket_id' => $ticket['id']
-            ]
-        );
-
-        if (!$stock_result->success) {
-            die(
-                "Gagal mengurangi stok: " .
-                $stock_result->message
-            );
-        }
-    }
-
-    // ===============================
-    // INSERT PAYMENT
-    // ===============================
-
-    $payment_result = $db->send_query(
-        "INSERT INTO payments
-            (
-                order_id,
-                payment_method,
-                amount,
-                status
-            )
-         VALUES
-            (
-                :order_id,
-                :payment_method,
-                :amount,
-                'paid'
-            )",
-        [
-            'order_id' => $order_id,
-            'payment_method' => $payment_method,
-            'amount' => $total_amount
-        ]
-    );
-
-    if (!$payment_result->success) {
-        die(
-            "Gagal menyimpan pembayaran: " .
-            $payment_result->message
-        );
-    }
-
-    // ===============================
-    // UPDATE STATUS ORDER
-    // ===============================
-
-    $update_order = $db->send_query(
-        "UPDATE orders
-         SET status = 'paid'
-         WHERE id = :id",
-        [
-            'id' => $order_id
-        ]
-    );
-
-    if (!$update_order->success) {
-        die(
-            "Gagal mengubah status order: " .
-            $update_order->message
-        );
-    }
-
-    // Simpan informasi order ke session
-    $_SESSION['order_success'] = [
-        'order_id' => $order_id,
-        'order_code' => $order_code,
-        'customer_name' => $customer_name,
-        'customer_email' => $customer_email,
-        'total_amount' => $total_amount,
-        'payment_method' => $payment_method
-    ];
-
-    header("Location: order_success.php");
-    exit;
-}
-
-// ===============================
-// TAMPILAN PAYMENT
-// ===============================
-
 if (
     $event_id <= 0 ||
-    empty($ticket_quantities)
+    empty($ticket_quantities) ||
+    $customer_name === '' ||
+    $customer_email === '' ||
+    $customer_phone === ''
 ) {
     header("Location: index.php");
     exit;
@@ -299,11 +34,18 @@ if (!$event) {
     exit;
 }
 
-// Ambil ticket
+if (!in_array($event['status'], ['upcoming', 'ongoing'])) {
+
+    header(
+        "Location: event_detail.php?id=" . $event_id
+    );
+
+    exit;
+}
+
 $selected_tickets = [];
 
 foreach ($ticket_quantities as $ticket_id => $quantity) {
-
     $ticket_id = (int) $ticket_id;
     $quantity = (int) $quantity;
 
@@ -312,42 +54,107 @@ foreach ($ticket_quantities as $ticket_id => $quantity) {
     }
 }
 
+if (empty($selected_tickets)) {
+    header(
+        "Location: select_ticket.php?event_id=" . $event_id
+    );
+    exit;
+}
+
 $ticket_ids = array_keys($selected_tickets);
 
 $placeholders = [];
-$params = [
-    'event_id' => $event_id
-];
+
+$params = [$event_id];
 
 foreach ($ticket_ids as $index => $ticket_id) {
-
-    $key = "ticket_" . $index;
-
-    $placeholders[] = ":" . $key;
-    $params[$key] = $ticket_id;
+    $placeholder = '$' . ($index + 2);
+    $placeholders[] = $placeholder;
+    $params[] = (int) $ticket_id;
 }
 
 $result = $db->send_query(
     "SELECT *
      FROM tickets
-     WHERE event_id = :event_id
+     WHERE event_id = $1
      AND id IN (" . implode(',', $placeholders) . ")
      ORDER BY price",
     $params
 );
 
+if (
+    !$result->success ||
+    empty($result->data)
+) {
+    header(
+        "Location: select_ticket.php?event_id=" . $event_id
+    );
+    exit;
+}
+
 $tickets = $result->data;
 
+$valid_selected_tickets = [];
+
+foreach ($tickets as $ticket) {
+    $ticket_id = (int) $ticket['id'];
+    $quantity =
+        $selected_tickets[$ticket_id] ?? 0;
+
+    if ($quantity > (int) $ticket['stock']) {
+        $quantity = (int) $ticket['stock'];
+    }
+
+    if ($quantity > 0) {
+        $valid_selected_tickets[$ticket_id] = $quantity;
+    }
+}
+
+$selected_tickets = $valid_selected_tickets;
+
+if (empty($selected_tickets)) {
+    header(
+        "Location: select_ticket.php?event_id=" . $event_id
+    );
+    exit;
+}
+
 $total_quantity = 0;
+
 $total_amount = 0;
 
 foreach ($tickets as $ticket) {
+    $quantity =
+        $selected_tickets[$ticket['id']] ?? 0;
 
-    $quantity = $selected_tickets[$ticket['id']] ?? 0;
+    if ($quantity <= 0) {
+        continue;
+    }
 
     $total_quantity += $quantity;
-    $total_amount += $ticket['price'] * $quantity;
+    $total_amount +=
+        (float) $ticket['price'] * $quantity;
 }
+
+$categoryResult = $db->send_query(
+    "SELECT name
+     FROM categories
+     WHERE id = $1",
+    [
+        $event['category_id']
+    ]
+);
+
+$category_name =
+    $categoryResult->data[0]['name'] ?? 'Event';
+
+$_SESSION['checkout'] = [
+    'event_id' => $event_id,
+    'tickets' => $selected_tickets,
+    'customer_name' => $customer_name,
+    'customer_email' => $customer_email,
+    'customer_phone' => $customer_phone
+];
 
 ?>
 
@@ -355,419 +162,372 @@ foreach ($tickets as $ticket) {
 <html lang="id">
 
 <head>
-
     <meta charset="UTF-8">
-
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
+    <title>Pembayaran - <?= htmlspecialchars($event['name']) ?></title>
 
-    <title>
-        Pembayaran - <?= htmlspecialchars($event['name']) ?>
-    </title>
-
+    <!-- Bootstrap -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
+    <!-- Bootstrap Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
 </head>
 
 <body class="bg-light">
 
-<nav class="navbar navbar-dark bg-primary">
+<?php
 
-    <div class="container">
+$activePage = 'event';
 
-        <a
-            class="navbar-brand fw-bold"
-            href="index.php"
-        >
-            Event Ticketing System
-        </a>
+require_once __DIR__ . "/templates/navbar.php";
 
-    </div>
-
-</nav>
-
+?>
 
 <div class="container py-5">
 
-    <!-- STEPPER -->
+    <nav
+        aria-label="breadcrumb"
+        class="mb-4"
+    >
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">
+                <a
+                    href="index.php"
+                    class="text-decoration-none"
+                >
+                    Beranda
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a
+                    href="event_detail.php?id=<?= $event_id ?>"
+                    class="text-decoration-none"
+                >
+                    <?= htmlspecialchars($event['name']) ?>
+                </a>
+            </li>
+            <li class="breadcrumb-item active">
+                Pembayaran
+            </li>
+        </ol>
+    </nav>
 
-    <div class="card shadow-sm mb-4">
-
-        <div class="card-body">
-
-            <div class="row text-center">
-
-                <div class="col-3">
-
-                    <div class="text-muted">
-                        1. Pilih Kategori
-                    </div>
-
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <span class="badge bg-primary mb-2">
+                <?= htmlspecialchars($category_name) ?>
+            </span>
+            <h3 class="fw-bold mb-3">
+                <?= htmlspecialchars($event['name']) ?>
+            </h3>
+            <div class="d-flex flex-wrap align-items-center gap-3 text-muted">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-calendar-event text-primary me-2"></i>
+                    <?= date(
+                        'd M Y',
+                        strtotime($event['event_date'])
+                    ) ?>
                 </div>
-
-                <div class="col-3">
-
-                    <div class="text-muted">
-                        2. Detail Pesanan
-                    </div>
-
+                <span class="text-secondary">•</span>
+                <div class="d-flex align-items-center">
+                    <i
+                        class="bi bi-clock text-primary me-2"
+                    ></i>
+                    <?= date(
+                        'H:i',
+                        strtotime($event['event_time'])
+                    ) ?>
+                    WIB
                 </div>
-
-                <div class="col-3">
-
-                    <div class="fw-bold text-primary">
-                        3. Metode Pembayaran
-                    </div>
-
+                <span class="text-secondary">•</span>
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-geo-alt text-primary me-2"></i>
+                    <?= htmlspecialchars($event['location']) ?>
                 </div>
-
-                <div class="col-3">
-
-                    <div class="text-muted">
-                        4. Selesai
-                    </div>
-
-                </div>
-
             </div>
-
         </div>
-
     </div>
-
-
     <div class="row g-4">
-
-        <!-- PAYMENT METHOD -->
-
         <div class="col-lg-7">
-
-            <div class="card shadow-sm">
-
+            <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
-
-                    <h3 class="fw-bold mb-2">
-                        Metode Pembayaran
-                    </h3>
-
+                    <h4 class="fw-bold mb-1">Metode Pembayaran</h4>
                     <p class="text-muted mb-4">
                         Pilih metode pembayaran yang ingin digunakan.
                     </p>
-
-
-                    <form method="POST">
-
+                    <form
+                        action="process_payment.php"
+                        method="POST"
+                    >
                         <input
                             type="hidden"
                             name="event_id"
                             value="<?= $event_id ?>"
                         >
-
-
-                        <?php foreach ($selected_tickets as $ticket_id => $quantity): ?>
-
+                        <?php foreach (
+                            $selected_tickets as $ticket_id => $quantity
+                        ): ?>
                             <input
                                 type="hidden"
                                 name="tickets[<?= $ticket_id ?>]"
                                 value="<?= $quantity ?>"
                             >
-
                         <?php endforeach; ?>
-
-
                         <input
                             type="hidden"
                             name="customer_name"
                             value="<?= htmlspecialchars($customer_name) ?>"
                         >
-
                         <input
                             type="hidden"
                             name="customer_email"
                             value="<?= htmlspecialchars($customer_email) ?>"
                         >
-
                         <input
                             type="hidden"
                             name="customer_phone"
                             value="<?= htmlspecialchars($customer_phone) ?>"
                         >
-
-
-                        <!-- TRANSFER BANK -->
-
-                        <div class="form-check border rounded p-3 mb-3">
-
+                        <div class="mb-3">
                             <input
-                                class="form-check-input"
                                 type="radio"
+                                class="btn-check"
                                 name="payment_method"
                                 id="transfer_bank"
                                 value="transfer_bank"
                                 required
                             >
-
                             <label
-                                class="form-check-label w-100"
                                 for="transfer_bank"
+                                class="btn btn-outline-primary w-100 text-start p-4"
                             >
-
-                                <strong>
-                                    Transfer Bank
-                                </strong>
-
-                                <br>
-
-                                <small class="text-muted">
-                                    Pembayaran melalui transfer bank
-                                </small>
-
+                                <div
+                                    class="d-flex align-items-center"
+                                >
+                                    <i
+                                        class="bi bi-bank fs-2 me-4"
+                                    ></i>
+                                    <div>
+                                        <div
+                                            class="fw-bold fs-5"
+                                        >
+                                            Transfer Bank
+                                        </div>
+                                        <div>
+                                            Pembayaran melalui transfer bank
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
-
                         </div>
 
-
-                        <!-- E WALLET -->
-
-                        <div class="form-check border rounded p-3 mb-3">
-
+                        <div class="mb-3">
                             <input
-                                class="form-check-input"
                                 type="radio"
+                                class="btn-check"
                                 name="payment_method"
                                 id="e_wallet"
                                 value="e_wallet"
                             >
-
                             <label
-                                class="form-check-label w-100"
                                 for="e_wallet"
+                                class="btn btn-outline-primary w-100 text-start p-4"
                             >
-
-                                <strong>
-                                    E-Wallet
-                                </strong>
-
-                                <br>
-
-                                <small class="text-muted">
-                                    GoPay, OVO, DANA, dan lainnya
-                                </small>
-
+                                <div
+                                    class="d-flex align-items-center"
+                                >
+                                    <i
+                                        class="bi bi-wallet2 fs-2 me-4"
+                                    ></i>
+                                    <div>
+                                        <div
+                                            class="fw-bold fs-5"
+                                        >
+                                            E-Wallet
+                                        </div>
+                                        <div>
+                                            GoPay, OVO, DANA, dan lainnya
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
-
                         </div>
 
-
-                        <!-- QRIS -->
-
-                        <div class="form-check border rounded p-3 mb-4">
-
+                        <div class="mb-4">
                             <input
-                                class="form-check-input"
                                 type="radio"
+                                class="btn-check"
                                 name="payment_method"
                                 id="qris"
                                 value="qris"
                             >
-
                             <label
-                                class="form-check-label w-100"
                                 for="qris"
+                                class="btn btn-outline-primary w-100 text-start p-4"
                             >
-
-                                <strong>
-                                    QRIS
-                                </strong>
-
-                                <br>
-
-                                <small class="text-muted">
-                                    Pembayaran menggunakan QRIS
-                                </small>
-
+                                <div
+                                    class="d-flex align-items-center"
+                                >
+                                    <i
+                                        class="bi bi-qr-code fs-2 me-4"
+                                    ></i>
+                                    <div>
+                                        <div
+                                            class="fw-bold fs-5"
+                                        >
+                                            QRIS
+                                        </div>
+                                        <div>Pembayaran menggunakan QRIS</div>
+                                    </div>
+                                </div>
                             </label>
-
                         </div>
 
+                        <div class="alert alert-info d-flex align-items-start">
+                            <i
+                                class="bi bi-info-circle me-2 mt-1"
+                            ></i>
+                            <div>
+                                Pembayaran pada sistem ini masih bersifat
+                                <strong>simulasi</strong>.
+                            </div>
+                        </div>
 
                         <button
                             type="submit"
                             class="btn btn-primary btn-lg w-100"
                         >
-                            Bayar Sekarang
-                        </button>
-
-                    </form>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- SUMMARY -->
-
-        <div class="col-lg-5">
-
-            <div class="card shadow-sm">
-
-                <div class="card-body p-4">
-
-                    <h5 class="fw-bold mb-1">
-                        Ringkasan Pesanan
-                    </h5>
-
-                    <p class="text-muted mb-4">
-                        <?= htmlspecialchars($event['name']) ?>
-                    </p>
-
-
-                    <?php foreach ($tickets as $ticket): ?>
-
-                        <?php
-
-                        $quantity =
-                            $selected_tickets[$ticket['id']];
-
-                        $subtotal =
-                            $ticket['price'] * $quantity;
-
-                        ?>
-
-                        <div
-                            class="d-flex justify-content-between mb-3"
-                        >
-
-                            <div>
-
-                                <div class="fw-semibold">
-
-                                    <?= htmlspecialchars(
-                                        $ticket['name']
-                                    ) ?>
-
-                                </div>
-
-                                <small class="text-muted">
-
-                                    <?= $quantity ?> ×
-
-                                    Rp<?= number_format(
-                                        $ticket['price'],
-                                        0,
-                                        ',',
-                                        '.'
-                                    ) ?>
-
-                                </small>
-
-                            </div>
-
-
-                            <div class="fw-semibold">
-
-                                Rp<?= number_format(
-                                    $subtotal,
-                                    0,
-                                    ',',
-                                    '.'
-                                ) ?>
-
-                            </div>
-
-                        </div>
-
-                    <?php endforeach; ?>
-
-
-                    <hr>
-
-
-                    <div
-                        class="d-flex justify-content-between"
-                    >
-
-                        <span class="text-muted">
-                            Total Tiket
-                        </span>
-
-                        <span class="fw-semibold">
-                            <?= $total_quantity ?> tiket
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        class="d-flex justify-content-between mt-2"
-                    >
-
-                        <span class="fw-bold">
-                            Total Pembayaran
-                        </span>
-
-                        <span class="fw-bold text-primary fs-5">
-
-                            Rp<?= number_format(
+                            <i
+                                class="bi bi-credit-card me-2"
+                            ></i>
+                            Bayar Rp <?= number_format(
                                 $total_amount,
                                 0,
                                 ',',
                                 '.'
                             ) ?>
-
-                        </span>
-
-                    </div>
-
+                        </button>
+                    </form>
                 </div>
+            </div>
+        </div>
 
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-1">Ringkasan Pesanan</h5>
+                    <p class="text-muted mb-4">
+                        <?= htmlspecialchars($event['name']) ?>
+                    </p>
+                    <?php foreach ($tickets as $ticket): ?>
+                        <?php
+                        $quantity =
+                            $selected_tickets[$ticket['id']] ?? 0;
+
+                        if ($quantity <= 0) {
+                            continue;
+                        }
+
+                        $subtotal =
+                            (float) $ticket['price'] * $quantity;
+
+                        ?>
+
+                        <div class="d-flex justify-content-between mb-3">
+                            <div>
+                                <div class="fw-semibold">
+                                    <?= htmlspecialchars(
+                                        $ticket['name']
+                                    ) ?>
+                                </div>
+                                <small class="text-muted">
+                                    <?= $quantity ?> ×
+                                    Rp <?= number_format(
+                                        $ticket['price'],
+                                        0,
+                                        ',',
+                                        '.'
+                                    ) ?>
+                                </small>
+                            </div>
+
+                            <div class="fw-semibold">
+                                Rp <?= number_format(
+                                    $subtotal,
+                                    0,
+                                    ',',
+                                    '.'
+                                ) ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Tiket</span>
+                        <span class="fw-semibold">
+                            <?= $total_quantity ?> tiket
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold">Total Pembayaran</span>
+                        <span
+                            class="fw-bold text-primary fs-5"
+                        >
+                            Rp <?= number_format(
+                                $total_amount,
+                                0,
+                                ',',
+                                '.'
+                            ) ?>
+                        </span>
+                    </div>
+                </div>
             </div>
 
-
-            <!-- CUSTOMER -->
-
-            <div class="card shadow-sm mt-4">
-
-                <div class="card-body">
-
-                    <h6 class="fw-bold">
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3">
+                        <i class="bi bi-person me-2"></i>
                         Data Pemesan
                     </h6>
 
-                    <p class="mb-1">
-                        <?= htmlspecialchars($customer_name) ?>
-                    </p>
-
-                    <p class="mb-1 text-muted">
-                        <?= htmlspecialchars($customer_email) ?>
-                    </p>
-
-                    <p class="mb-0 text-muted">
-                        <?= htmlspecialchars($customer_phone) ?>
-                    </p>
-
+                    <div class="mb-2">
+                        <small class="text-muted">Nama</small>
+                        <div class="fw-semibold">
+                            <?= htmlspecialchars(
+                                $customer_name
+                            ) ?>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Email</small>
+                        <div>
+                            <?= htmlspecialchars(
+                                $customer_email
+                            ) ?>
+                        </div>
+                    </div>
+                    <div>
+                        <small class="text-muted">No. Telepon</small>
+                        <div>
+                            <?= htmlspecialchars(
+                                $customer_phone
+                            ) ?>
+                        </div>
+                    </div>
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
-
-
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-></script>
-
 </body>
-
 </html>

@@ -5,388 +5,257 @@ session_start();
 require_once "../bootstrap.php";
 
 $db = new DBconnection();
-$eventModel = new Event($db);
 
-$event_id = (int) ($_GET['event_id'] ?? 0);
+$event_id = (int) ($_GET['event_id'] ?? $_POST['event_id'] ?? 0);
 
 if ($event_id <= 0) {
     header("Location: index.php");
     exit;
 }
 
-$event = $eventModel->find_by_id($event_id);
+$eventResult = $db->send_query(
+    "SELECT *
+     FROM events
+     WHERE id = $1",
+    [
+        $event_id
+    ]
+);
+
+$event = $eventResult->data[0] ?? null;
 
 if (!$event) {
     header("Location: index.php");
     exit;
 }
 
-$result = $db->send_query(
+$ticketResult = $db->send_query(
     "SELECT *
      FROM tickets
-     WHERE event_id = :event_id
+     WHERE event_id = $1
+     AND stock > 0
      ORDER BY price",
-    ['event_id' => $event_id]
+    [
+        $event_id
+    ]
 );
 
-$tickets = $result->data;
+$tickets = $ticketResult->data;
+
+$error = '';
+
+$selectedTickets = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $postedTickets = $_POST['tickets'] ?? [];
+
+    foreach ($postedTickets as $ticket_id => $quantity) {
+
+        $ticket_id = (int) $ticket_id;
+        $quantity = (int) $quantity;
+
+        if ($ticket_id <= 0) {
+            continue;
+        }
+
+        if ($quantity > 0) {
+            $selectedTickets[$ticket_id] = $quantity;
+        }
+    }
+
+    if (empty($selectedTickets)) {
+        $error = 'Silakan pilih minimal 1 tiket.';
+    } else {
+        foreach ($selectedTickets as $ticket_id => $quantity) {
+            $ticketResult = $db->send_query(
+                "SELECT *
+                 FROM tickets
+                 WHERE id = $1
+                 AND event_id = $2",
+                [
+                    $ticket_id,
+                    $event_id
+                ]
+            );
+
+            $ticket = $ticketResult->data[0] ?? null;
+
+            if (!$ticket) {
+                $error = 'Tiket yang dipilih tidak valid.';
+                break;
+            }
+
+            if ($quantity > (int) $ticket['stock']) {
+                $error =
+                    'Jumlah tiket "' .
+                    $ticket['name'] .
+                    '" melebihi stok yang tersedia.';
+                break;
+            }
+        }
+
+        if ($error === '') {
+            $_SESSION['selected_tickets'] = $selectedTickets;
+            $_SESSION['selected_event_id'] = $event_id;
+            header(
+                "Location: order_detail.php?event_id=" . $event_id
+            );
+            exit;
+        }
+    }
+}
 
 ?>
 
+
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pilih Tiket - <?= htmlspecialchars($event['name']) ?></title>
 
+    <!-- Bootstrap -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
+    <!-- Bootstrap Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
 
 </head>
-
 <body class="bg-light">
-
-<nav class="navbar navbar-dark bg-primary">
-
-    <div class="container">
-
-        <a
-            class="navbar-brand fw-bold"
-            href="index.php"
-        >
-            Event Ticketing System
-        </a>
-
-    </div>
-
-</nav>
-
 <div class="container py-5">
-
-    <div class="card shadow-sm mb-4">
-
-        <div class="card-body">
-
-            <div class="row text-center">
-
-                <div class="col-4">
-                    <div class="fw-bold text-primary">
-                        1. Pilih Kategori
-                    </div>
-                </div>
-
-                <div class="col-4">
-                    <div class="text-muted">
-                        2. Detail Pesanan
-                    </div>
-                </div>
-
-                <div class="col-4">
-                    <div class="text-muted">
-                        3. Metode Pembayaran
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-
+    <div class="mb-4">
+        <a
+            href="event_detail.php?id=<?= $event_id ?>"
+            class="text-decoration-none text-primary"
+        >
+            <i class="bi bi-arrow-left me-1"></i>
+            Kembali ke Detail Event
+        </a>
     </div>
 
     <div class="mb-4">
-
-        <a
-            href="event_detail.php?id=<?= $event_id ?>"
-            class="btn btn-outline-secondary mb-3"
-        >
-            ← Kembali
-        </a>
-
-        <h2 class="fw-bold">
-            Pilih Kategori Tiket
-        </h2>
-
-        <p class="text-muted">
+        <h1 class="fw-bold mb-2">Pilih Tiket</h1>
+        <p class="text-muted fs-5 mb-0">
             <?= htmlspecialchars($event['name']) ?>
         </p>
-
     </div>
 
-    <?php if (empty($tickets)): ?>
-
-        <div class="alert alert-warning">
-            Belum ada tiket untuk event ini.
-        </div>
-
-    <?php else: ?>
-
-        <form
-            action="order_detail.php"
-            method="POST"
+    <!-- alert eror -->
+    <?php if ($error !== ''): ?>
+        <div
+            class="alert alert-warning d-flex align-items-center"
+            role="alert"
         >
-
-            <input
-                type="hidden"
-                name="event_id"
-                value="<?= $event_id ?>"
-            >
-
-            <div class="row g-4">
-
-                <?php foreach ($tickets as $ticket): ?>
-
-                    <div class="col-md-6">
-
-                        <div class="card shadow-sm h-100">
-
-                            <div class="card-body p-4">
-
-                                <h5 class="fw-bold mb-2">
-                                    <?= htmlspecialchars(
-                                        $ticket['name']
-                                    ) ?>
-                                </h5>
-
-                                <h4 class="text-primary fw-bold">
-
-                                    Rp<?= number_format(
-                                        $ticket['price'],
-                                        0,
-                                        ',',
-                                        '.'
-                                    ) ?>
-
-                                </h4>
-
-                                <hr>
-
-                                <?php if ($ticket['stock'] > 0): ?>
-
-                                    <div class="d-flex justify-content-between align-items-center">
-
-                                        <div>
-
-                                            <small class="text-muted">
-                                                Stok tersedia
-                                            </small>
-
-                                            <div class="fw-bold">
-                                                <?= $ticket['stock'] ?>
-                                            </div>
-
-                                        </div>
-
-                                        <div
-                                            class="input-group"
-                                            style="width: 150px;"
-                                        >
-
-                                            <button
-                                                type="button"
-                                                class="btn btn-outline-secondary btn-minus"
-                                                data-ticket-id="<?= $ticket['id'] ?>"
-                                            >
-                                                −
-                                            </button>
-
-                                            <input
-                                                type="number"
-                                                name="tickets[<?= $ticket['id'] ?>]"
-                                                class="form-control text-center quantity"
-                                                value="0"
-                                                min="0"
-                                                max="<?= $ticket['stock'] ?>"
-                                                data-ticket-id="<?= $ticket['id'] ?>"
-                                                data-price="<?= $ticket['price'] ?>"
-                                                readonly
-                                            >
-
-                                            <button
-                                                type="button"
-                                                class="btn btn-outline-secondary btn-plus"
-                                                data-ticket-id="<?= $ticket['id'] ?>"
-                                            >
-                                                +
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                <?php else: ?>
-
-                                    <div class="text-danger fw-bold">
-                                        Tiket habis
-                                    </div>
-
-                                <?php endif; ?>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                <?php endforeach; ?>
-
+            <i class="bi bi-exclamation-circle-fill me-2"></i>
+            <div>
+                <?= htmlspecialchars($error) ?>
             </div>
-
-            <div class="card shadow-sm mt-4">
-
-                <div class="card-body p-4">
-
-                    <div class="d-flex justify-content-between align-items-center">
-
-                        <div>
-
-                            <h5 class="fw-bold mb-1">
-                                Total
-                            </h5>
-
-                            <span
-                                class="text-muted"
-                                id="total-item"
-                            >
-                                0 tiket
-                            </span>
-
-                        </div>
-
-                        <h3
-                            class="fw-bold text-primary mb-0"
-                            id="total-price"
-                        >
-                            Rp0
-                        </h3>
-
-                    </div>
-
-                    <button
-                        type="submit"
-                        id="continue-button"
-                        class="btn btn-primary btn-lg w-100 mt-4"
-                        disabled
-                    >
-                        Lanjut
-                    </button>
-
-                </div>
-
-            </div>
-
-        </form>
-
+        </div>
     <?php endif; ?>
 
+    <form
+        method="POST"
+        action="select_ticket.php?event_id=<?= $event_id ?>"
+    >
+        <input
+            type="hidden"
+            name="event_id"
+            value="<?= $event_id ?>"
+        >
+        <?php if (!empty($tickets)): ?>
+            <div class="row g-4">
+                <?php foreach ($tickets as $ticket): ?>
+                    <?php
+                    $ticket_id = (int) $ticket['id'];
+                    $quantity =
+                        $selectedTickets[$ticket_id] ?? 0;
+                    ?>
+                    <div class="col-md-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h4 class="fw-bold mb-3">
+                                            <?= htmlspecialchars(
+                                                $ticket['name']
+                                            ) ?>
+                                        </h4>
+                                        <h3 class="fw-bold text-primary mb-3">
+                                            Rp<?= number_format(
+                                                $ticket['price'],
+                                                0,
+                                                ',',
+                                                '.'
+                                            ) ?>
+                                        </h3>
+                                        <p class="text-muted mb-0">
+                                            Stok:
+                                            <?= (int) $ticket['stock'] ?>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label
+                                            for="ticket-<?= $ticket_id ?>"
+                                            class="form-label small text-muted"
+                                        >
+                                            Jumlah
+                                        </label>
+                                        <input
+                                            id="ticket-<?= $ticket_id ?>"
+                                            type="number"
+                                            name="tickets[<?= $ticket_id ?>]"
+                                            class="form-control form-control-lg"
+                                            value="<?= $quantity ?>"
+                                            min="0"
+                                            max="<?= (int) $ticket['stock'] ?>"
+                                            style="width: 150px;"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <button
+                    type="submit"
+                    class="btn btn-primary btn-lg px-4"
+                >
+                    Lanjut
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+            </div>
+        <?php else: ?>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i
+                        class="bi bi-ticket-perforated fs-1 text-muted"
+                    ></i>
+                    <h5 class="fw-bold mt-3">Tiket Tidak Tersedia</h5>
+                    <p class="text-muted">
+                        Saat ini belum ada tiket yang tersedia
+                        untuk event ini.
+                    </p>
+                    <a
+                        href="event_detail.php?id=<?= $event_id ?>"
+                        class="btn btn-primary"
+                    >
+                        Kembali ke Detail Event
+                    </a>
+                </div>
+            </div>
+        <?php endif; ?>
+    </form>
 </div>
-
-<script>
-
-const quantities = document.querySelectorAll('.quantity');
-const totalPrice = document.getElementById('total-price');
-const totalItem = document.getElementById('total-item');
-const continueButton = document.getElementById('continue-button');
-
-function updateTotal() {
-
-    let total = 0;
-    let item = 0;
-
-    quantities.forEach(function(input) {
-
-        const quantity = parseInt(input.value);
-        const price = parseFloat(input.dataset.price);
-
-        total += quantity * price;
-        item += quantity;
-
-    });
-
-    totalPrice.textContent =
-        'Rp' + total.toLocaleString('id-ID');
-
-    totalItem.textContent =
-        item + ' tiket';
-
-    continueButton.disabled =
-        item === 0;
-}
-
-document
-    .querySelectorAll('.btn-plus')
-    .forEach(function(button) {
-
-        button.addEventListener('click', function() {
-
-            const ticketId =
-                this.dataset.ticketId;
-
-            const input =
-                document.querySelector(
-                    `.quantity[data-ticket-id="${ticketId}"]`
-                );
-
-            const max =
-                parseInt(input.max);
-
-            let value =
-                parseInt(input.value);
-
-            if (value < max) {
-                input.value = value + 1;
-            }
-
-            updateTotal();
-
-        });
-
-    });
-
-document
-    .querySelectorAll('.btn-minus')
-    .forEach(function(button) {
-
-        button.addEventListener('click', function() {
-
-            const ticketId =
-                this.dataset.ticketId;
-
-            const input =
-                document.querySelector(
-                    `.quantity[data-ticket-id="${ticketId}"]`
-                );
-
-            let value =
-                parseInt(input.value);
-
-            if (value > 0) {
-                input.value = value - 1;
-            }
-
-            updateTotal();
-
-        });
-
-    });
-
-updateTotal();
-
-</script>
-
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-></script>
-
 </body>
-
 </html>
