@@ -4,9 +4,9 @@ class DBconnection
 {
     private string $host = "localhost";
     private string $port = "5432";
-    private string $dbname = "cobacoba";
+    private string $dbname = "NAMADB";
     private string $username = "postgres";
-    private string $password = "rmfu2910";
+    private string $password = "PASSWORD";
     private $dbconn = null;
 
     public function __construct()
