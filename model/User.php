@@ -3,34 +3,79 @@
 class User extends BaseModel
 {
     protected string $tabel = 'users';
+
     protected string $primary_key = 'id';
 
     public function insert(array $data): Respon
     {
         return $this->db->send_query(
             'INSERT INTO users
-                (name, email, password, role)
+                (
+                    name,
+                    email,
+                    password,
+                    role
+                )
              VALUES
-                (:name, :email, :password, :role)
+                (
+                    $1,
+                    $2,
+                    $3,
+                    $4
+                )
              RETURNING *',
             [
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => $data['password'],
-                'role' => $data['role'] ?? 'admin'
+                $data['name'],
+                $data['email'],
+                $data['password'],
+                $data['role'] ?? 'admin'
             ]
         );
     }
 
-    public function login(string $email, string $password): Respon
+    public function update(int $id, array $data): Respon
     {
+        return $this->db->send_query(
+            'UPDATE users
+             SET
+                name = $1,
+                email = $2,
+                password = $3,
+                role = $4
+             WHERE id = $5',
+            [
+                $data['name'],
+                $data['email'],
+                $data['password'],
+                $data['role'] ?? 'admin',
+                $id
+            ]
+        );
+    }
+
+    public function delete(int $id): Respon
+    {
+        return $this->db->send_query(
+            'DELETE FROM users
+             WHERE id = $1',
+            [
+                $id
+            ]
+        );
+    }
+
+    public function login(
+        string $email,
+        string $password
+    ): Respon {
+
         $result = $this->db->send_query(
             'SELECT *
              FROM users
-             WHERE email = :email
+             WHERE email = $1
              LIMIT 1',
             [
-                'email' => $email
+                $email
             ]
         );
 
@@ -50,24 +95,12 @@ class User extends BaseModel
 
         $user = $result->data[0];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Cek password
-        |--------------------------------------------------------------------------
-        */
-
         if ($password !== $user['password']) {
             return new Respon(
                 false,
                 'Email atau password salah.'
             );
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | Hanya admin yang boleh login
-        |--------------------------------------------------------------------------
-        */
 
         if ($user['role'] !== 'admin') {
             return new Respon(

@@ -11,11 +11,6 @@ if ($order_id <= 0) {
     exit;
 }
 
-
-// ===============================
-// AMBIL DATA ORDER
-// ===============================
-
 $order_result = $db->send_query(
     "SELECT *
      FROM orders
@@ -31,11 +26,6 @@ if (!$order_result->success || empty($order_result->data)) {
 }
 
 $order = $order_result->data[0];
-
-
-// ===============================
-// AMBIL DETAIL TIKET
-// ===============================
 
 $item_result = $db->send_query(
     "SELECT
@@ -56,11 +46,6 @@ $item_result = $db->send_query(
 
 $order_items = $item_result->data;
 
-
-// ===============================
-// AMBIL DATA PAYMENT
-// ===============================
-
 $payment_result = $db->send_query(
     "SELECT *
      FROM payments
@@ -72,11 +57,6 @@ $payment_result = $db->send_query(
 
 $payment = $payment_result->data[0] ?? null;
 
-
-// ===============================
-// TEMPLATE
-// ===============================
-
 require_once "../templates/header.php";
 require_once "../templates/navbar.php";
 require_once "../templates/sidebar.php";
@@ -84,25 +64,13 @@ require_once "../templates/sidebar.php";
 ?>
 
 <main class="app-main">
-
-    <!-- HEADER -->
-
     <div class="app-content-header">
-
         <div class="container-fluid">
-
             <div class="row">
-
                 <div class="col-sm-6">
-
-                    <h3 class="mb-0">
-                        Detail Order
-                    </h3>
-
+                    <h3 class="mb-0">Detail Order</h3>
                 </div>
-
                 <div class="col-sm-6 text-end">
-
                     <a
                         href="index.php"
                         class="btn btn-secondary"
@@ -110,50 +78,23 @@ require_once "../templates/sidebar.php";
                         <i class="bi bi-arrow-left"></i>
                         Kembali
                     </a>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
-
-    <!-- CONTENT -->
-
     <div class="app-content">
-
         <div class="container-fluid">
-
             <div class="row g-4">
-
-                <!-- ========================= -->
-                <!-- INFORMASI ORDER -->
-                <!-- ========================= -->
-
                 <div class="col-lg-6">
-
                     <div class="card">
-
                         <div class="card-header">
-
-                            <h3 class="card-title">
-                                Informasi Pesanan
-                            </h3>
-
+                            <h3 class="card-title">Informasi Pesanan</h3>
                         </div>
-
                         <div class="card-body">
-
                             <table class="table table-borderless">
-
                                 <tr>
-
-                                    <th width="180">
-                                        Kode Order
-                                    </th>
-
+                                    <th width="180">Kode Order</th>
                                     <td>
                                         <strong>
                                             <?= htmlspecialchars(
@@ -161,16 +102,9 @@ require_once "../templates/sidebar.php";
                                             ) ?>
                                         </strong>
                                     </td>
-
                                 </tr>
-
-
                                 <tr>
-
-                                    <th>
-                                        Tanggal
-                                    </th>
-
+                                    <th>Tanggal</th>
                                     <td>
                                         <?= date(
                                             'd-m-Y H:i',
@@ -179,16 +113,9 @@ require_once "../templates/sidebar.php";
                                             )
                                         ) ?>
                                     </td>
-
                                 </tr>
-
-
                                 <tr>
-
-                                    <th>
-                                        Status
-                                    </th>
-
+                                    <th>Status</th>
                                     <td>
 
                                         <?php
@@ -211,9 +138,7 @@ require_once "../templates/sidebar.php";
 
 ?>
 
-                                        <span
-                                            class="badge <?= $badge ?>"
-                                        >
+                                        <span class="badge <?= $badge ?>">
 
                                             <?= htmlspecialchars(
                                                 ucfirst(
@@ -222,187 +147,93 @@ require_once "../templates/sidebar.php";
                                             ) ?>
 
                                         </span>
-
                                     </td>
-
                                 </tr>
-
-
                                 <tr>
-
-                                    <th>
-                                        Total
-                                    </th>
-
+                                    <th>Total</th>
                                     <td>
-
                                         <strong class="text-primary">
-
                                             Rp<?= number_format(
                                                 $order['total_amount'],
                                                 0,
                                                 ',',
                                                 '.'
                                             ) ?>
-
                                         </strong>
-
                                     </td>
-
                                 </tr>
-
                             </table>
-
                         </div>
-
                     </div>
-
                 </div>
-
-
-                <!-- ========================= -->
-                <!-- DATA CUSTOMER -->
-                <!-- ========================= -->
-
                 <div class="col-lg-6">
-
                     <div class="card">
-
                         <div class="card-header">
-
-                            <h3 class="card-title">
-                                Data Customer
-                            </h3>
-
+                            <h3 class="card-title">Data Customer</h3>
                         </div>
-
                         <div class="card-body">
-
                             <table class="table table-borderless">
-
                                 <tr>
-
-                                    <th width="180">
-                                        Nama
-                                    </th>
-
+                                    <th width="180">Nama</th>
                                     <td>
                                         <?= htmlspecialchars(
                                             $order['customer_name']
                                         ) ?>
                                     </td>
-
                                 </tr>
-
-
                                 <tr>
-
-                                    <th>
-                                        Email
-                                    </th>
-
+                                    <th>Email</th>
                                     <td>
                                         <?= htmlspecialchars(
                                             $order['customer_email']
                                         ) ?>
                                     </td>
-
                                 </tr>
-
-
                                 <tr>
-
-                                    <th>
-                                        No. HP
-                                    </th>
-
+                                    <th>No. HP</th>
                                     <td>
                                         <?= htmlspecialchars(
                                             $order['customer_phone']
                                         ) ?>
                                     </td>
-
                                 </tr>
-
                             </table>
-
                         </div>
-
                     </div>
-
                 </div>
 
-
-                <!-- ========================= -->
-                <!-- DETAIL TIKET -->
-                <!-- ========================= -->
-
                 <div class="col-12">
-
                     <div class="card">
-
                         <div class="card-header">
-
-                            <h3 class="card-title">
-                                Tiket yang Dibeli
-                            </h3>
-
+                            <h3 class="card-title">Tiket yang Dibeli</h3>
                         </div>
-
                         <div class="card-body">
-
                             <div class="table-responsive">
-
                                 <table
                                     class="table table-bordered table-hover"
                                 >
-
                                     <thead>
-
                                         <tr>
-
-                                            <th width="50">
-                                                #
-                                            </th>
-
-                                            <th>
-                                                Event
-                                            </th>
-
-                                            <th>
-                                                Tiket
-                                            </th>
-
-                                            <th>
-                                                Harga
-                                            </th>
-
-                                            <th>
-                                                Jumlah
-                                            </th>
-
-                                            <th>
-                                                Subtotal
-                                            </th>
-
+                                            <th width="50">#</th>
+                                            <th>Event</th>
+                                            <th>Tiket</th>
+                                            <th>Harga</th>
+                                            <th>Jumlah</th>
+                                            <th>Subtotal</th>
                                         </tr>
-
                                     </thead>
-
 
                                     <tbody>
 
                                         <?php if (empty($order_items)): ?>
 
                                             <tr>
-
                                                 <td
                                                     colspan="6"
                                                     class="text-center text-muted"
                                                 >
                                                     Tidak ada detail tiket.
                                                 </td>
-
                                             </tr>
 
                                         <?php else: ?>
@@ -476,72 +307,42 @@ require_once "../templates/sidebar.php";
 
 
                                     <tfoot>
-
                                         <tr>
-
                                             <th
                                                 colspan="5"
                                                 class="text-end"
                                             >
                                                 Total
                                             </th>
-
                                             <th>
-
                                                 Rp<?= number_format(
                                                     $order['total_amount'],
                                                     0,
                                                     ',',
                                                     '.'
                                                 ) ?>
-
                                             </th>
-
                                         </tr>
-
                                     </tfoot>
-
                                 </table>
-
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
 
-
-                <!-- ========================= -->
-                <!-- PEMBAYARAN -->
-                <!-- ========================= -->
-
                 <div class="col-12">
-
                     <div class="card">
-
                         <div class="card-header">
-
-                            <h3 class="card-title">
-                                Informasi Pembayaran
-                            </h3>
-
+                            <h3 class="card-title">Informasi Pembayaran</h3>
                         </div>
-
                         <div class="card-body">
 
                             <?php if ($payment): ?>
 
                                 <table class="table table-borderless">
-
                                     <tr>
-
-                                        <th width="200">
-                                            Metode Pembayaran
-                                        </th>
-
+                                        <th width="200">Metode Pembayaran</th>
                                         <td>
-
                                             <?php
 
                                             $payment_method =
@@ -572,16 +373,9 @@ require_once "../templates/sidebar.php";
                                             ) ?>
 
                                         </td>
-
                                     </tr>
-
-
                                     <tr>
-
-                                        <th>
-                                            Jumlah
-                                        </th>
-
+                                        <th>Jumlah</th>
                                         <td>
 
                                             Rp<?= number_format(
@@ -592,16 +386,9 @@ require_once "../templates/sidebar.php";
                                             ) ?>
 
                                         </td>
-
                                     </tr>
-
-
                                     <tr>
-
-                                        <th>
-                                            Status Pembayaran
-                                        </th>
-
+                                        <th>Status Pembayaran</th>
                                         <td>
 
                                             <?php
@@ -638,18 +425,10 @@ require_once "../templates/sidebar.php";
                                                 ) ?>
 
                                             </span>
-
                                         </td>
-
                                     </tr>
-
-
                                     <tr>
-
-                                        <th>
-                                            Waktu Pembayaran
-                                        </th>
-
+                                        <th>Waktu Pembayaran</th>
                                         <td>
 
                                             <?= $payment['paid_at']
@@ -663,34 +442,19 @@ require_once "../templates/sidebar.php";
                                 ?>
 
                                         </td>
-
                                     </tr>
-
                                 </table>
 
                             <?php else: ?>
 
-                                <div class="alert alert-warning mb-0">
-
-                                    Belum ada data pembayaran.
-
-                                </div>
+                                <div class="alert alert-warning mb-0">Belum ada data pembayaran.</div>
 
                             <?php endif; ?>
 
                         </div>
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </main>
-
-
-<?php require_once "../templates/footer.php"; ?>

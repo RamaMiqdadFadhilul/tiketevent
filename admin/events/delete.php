@@ -4,18 +4,18 @@ require_once "../../bootstrap.php";
 
 $db = new DBconnection();
 
-$ticket = new Ticket($db);
+$event = new Event($db);
 
 $id = (int) ($_GET['id'] ?? 0);
 
 if ($id > 0) {
 
-    $result = $ticket->delete($id);
+    $result = $event->delete($id);
 
     if (!$result->success) {
 
         die(
-            'Gagal menghapus ticket: ' .
+            'Gagal menghapus event: ' .
             htmlspecialchars($result->message)
         );
     }

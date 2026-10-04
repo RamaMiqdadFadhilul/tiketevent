@@ -1,14 +1,5 @@
-<?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-?>
-
 <nav class="app-header navbar navbar-expand bg-body">
-
     <div class="container-fluid">
-
-        <!-- Sidebar Toggle -->
         <ul class="navbar-nav">
             <li class="nav-item">
                 <a
@@ -21,25 +12,25 @@ if (session_status() === PHP_SESSION_NONE) {
                 </a>
             </li>
         </ul>
-
-
-        <!-- Right Navbar -->
-        <ul class="navbar-nav ms-auto">
-
+        <ul class="navbar-nav ms-auto align-items-center">
             <li class="nav-item">
-
+                <span class="nav-link">
+                    <i class="bi bi-person-circle me-1"></i>
+                    <?= htmlspecialchars(
+                        $_SESSION['user_name'] ?? 'Admin'
+                    ) ?>
+                </span>
+            </li>
+            <li class="nav-item">
                 <a
                     class="nav-link text-danger"
                     href="/admin/logout.php"
+                    onclick="return confirm('Yakin ingin logout?')"
                 >
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span class="ms-1">Logout</span>
+                    <i class="bi bi-box-arrow-right me-1"></i>
+                    Logout
                 </a>
-
             </li>
-
         </ul>
-
     </div>
-
 </nav>
