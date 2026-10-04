@@ -8,9 +8,9 @@ Project ini dibuat untuk memenuhi tugas praktikum **Pengembangan Perangkat Lunak
 
 ## 👥 Anggota Kelompok
 
-| No. | Nama | NIM | Role |
+| No. | NIM | Nama | Role |
 |---:|---|---|---|
-| 1 | 434251135 | Rama Miqdad Fadhilul Umam |  | Ketua |
+| 1 | 434251135 | Rama Miqdad Fadhilul Umam | Ketua |
 | 2 | 434251114 | CHOIRUL UMAM| Anggota | Anggota |
 | 3 | 434251120 | IBNU HEDIANSYAH ABIMANYU| Anggota |
 | 4 | 434251126 | MUHAMMAD FARID HAQIQI | Anggota |
