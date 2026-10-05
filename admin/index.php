@@ -270,7 +270,7 @@ require_once "templates/sidebar.php";
                                                             default =>
                                                                 'bg-secondary'
                                                         };
-                                                        ?>
+                                                ?>
                                                         <span class="badge <?= $badge ?>">
                                                             <?= htmlspecialchars(
                                                                 ucfirst(
@@ -308,6 +308,3 @@ require_once "templates/sidebar.php";
         </div>
     </div>
 </main>
-<?php
-
-?>
