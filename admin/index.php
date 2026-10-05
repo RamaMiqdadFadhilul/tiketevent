@@ -310,6 +310,4 @@ require_once "templates/sidebar.php";
 </main>
 <?php
 
-require_once "templates/footer.php";
-
 ?>

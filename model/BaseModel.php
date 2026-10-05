@@ -39,7 +39,6 @@ abstract class BaseModel implements Crudable
         return $respon->data[0] ?? null;
     }
 
-
     public function nama_tabel(): string
     {
         return $this->tabel;
